@@ -15,13 +15,11 @@ def loadconfig():
     # load globals defined in the config file
 
     global bot_token
-    global channel_id
 
     try:
-        with open('configs/config.json') as f:
-            print('loading config file for main bot')
+        with open('configs/token.json') as f:
+            print('loading token for main bot')
             data = json.load(f)
-            channel_id = data['channel_id']
             try:
                 bot_token = data['bot_token']
             except:
@@ -43,6 +41,7 @@ if __name__ == '__main__':
             bot.load_extension('cogs.'+(load))
         except Exception as e:
             print('{} cannot be loaded. [{}]'.format(load, e))
+
 
 # starting event
 @bot.event
