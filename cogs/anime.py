@@ -167,6 +167,40 @@ class animeCog(commands.Cog, name="anime"):
             await ctx.send("This is what we're watching this season <:haneeh:567548762843512832>")
             await self.getlist(ctx)
 
+    @commands.command()
+    @commands.has_role("anime")
+    async def s(self, ctx, *args):
+        if ctx.channel.id in channel_id:
+            searchterm = (" ".join(args[:]))
+            searchterm = searchterm + " horriblesubs 720"
+            # if ctx.channel.id == "590798224764436499":
+            i = 0
+            display = self.anime_embed(searchterm, i)
+            thismessage = await ctx.send(embed=display)
+            await thismessage.add_reaction(emoji=':best:579662404980572161')
+            await thismessage.add_reaction(emoji=':worst:579662420537114626')
+            
+            # author = ctx.author
+            # if author 
+            thismessage.reaction.
+
+
+    def anime_embed(self, searchterm, i):     
+        output=[]  
+        pants = Nyaa.search(keyword=searchterm, category=1, subcategory=2)     
+        current = pants[i]
+        name = current["name"]
+        baddl = current["download_url"]
+        dl = baddl.replace('http', 'https')
+        output.append("You searched with: "+searchterm)
+        output.append("**Title**: "+ name)
+        output.append("**DL**: "+ " [link]("+ dl + ")")
+        foutput = '\n'.join(output)
+        embed = discord.Embed()
+        embed.add_field(name="Searching Nyaa", value=foutput, inline=False)
+        return embed
+
+
 
 def setup(bot):
     bot.add_cog(animeCog(bot))
