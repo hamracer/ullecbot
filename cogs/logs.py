@@ -46,11 +46,18 @@ class logCog(commands.Cog, name="logs"):
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def check(self, ctx, arg):
+    async def check(self, ctx, arg1, arg2):
             # lazy way of getting the user_id
-        arg = arg.strip("<@")
-        userid = arg.strip(">")
+        arg1 = arg1.strip("<@")
+        try:
+            arg1 = arg1.strip("!")
+        except:
+            pass
+        userid = arg1.strip(">")
         userid = int(userid)
+        emote = arg2.split(":")
+        emotestr = emote[1]
+        emotestr = ":"+emotestr+":"
         puser = self.bot.get_user(userid)
             # connection to db 
         conn = await asyncpg.create_pool(database="messages", user="postgres", password="password")
@@ -59,13 +66,16 @@ class logCog(commands.Cog, name="logs"):
 
         row = await conn.fetch("SELECT content FROM logs WHERE author_id = $1", puser.id)
         counter = 0
-        finder = ":fatano:"
-        for i in row:
-            if finder in i['content']:
-                counter += 1
-                print("WE FOUND ONE")
-            print(i)
-        print(counter)
+        async with ctx.channel.typing():
+            for i in row:
+                if emotestr in i['content']:
+                    counter += 1
+                    print("WE FOUND ONE")
+                print(i)
+            titlestring = puser.name + " has " + arg2 + "'d "+ str(counter) + " times"
+            embed = discord.Embed(title=titlestring)
+            embed.set_thumbnail(url=puser.avatar_url)
+            await ctx.send(embed=embed)
 
 
         # except Exception as e:

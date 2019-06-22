@@ -43,6 +43,11 @@ class helpCog(commands.Cog, name="help"):
         print(arg)
 
 
+    @commands.command()
+    @commands.has_permissions(manage_roles=True)
+    async def pitroulette(self, ctx):
+        await ctx.send("%pitroulette")
+
 def setup(bot):
     bot.add_cog(helpCog(bot))
     print('help cog loaded')
