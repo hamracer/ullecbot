@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import random
 
 
 class modabuseCog(commands.Cog, name="modabuse"):
@@ -9,7 +10,9 @@ class modabuseCog(commands.Cog, name="modabuse"):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.id == 157623260526280704:
-            await message.author.edit(nick="banned idiot")
+            await message.author.edit(nick="zbanned idiot")
+
+
 
 
 def setup(bot):

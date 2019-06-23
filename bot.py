@@ -1,6 +1,7 @@
     
 import discord
 from discord.ext import tasks, commands
+from discord.ext.commands import CommandNotFound
 import json
 import os
 
@@ -36,6 +37,19 @@ if __name__ == '__main__':
             bot.load_extension('cogs.'+(load))
         except Exception as e:
             print('{} cannot be loaded. [{}]'.format(load, e))
+
+    @bot.event
+    async def on_command_error(ctx, error):
+        if isinstance(error, MissingPermissions):
+            await ctx.message.add_reaction(emoji=':worst:579662420537114626')
+            return
+        raise error
+
+        if isinstance(error, CommandNotFound):
+            await ctx.message.add_reaction(emoji=':worst:579662420537114626')
+            return
+        raise error
+
 
 
 # starting event
