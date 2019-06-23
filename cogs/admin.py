@@ -138,8 +138,15 @@ class adminCog(commands.Cog, name="admin"):
 
     @tasks.loop(seconds=timer)
     async def unpitter(self, ctx):
-        role = discord.utils.get(ctx.message.guild.roles, name='you brought this onto yourself')
-        for member in ctx.message.guild.members:
+        try:
+            role = discord.utils.get(ctx.message.guild.roles, name='you brought this onto yourself')
+            for member in ctx.message.guild.members:
+                if role in member.roles:
+                    await member.remove_roles(role)
+        except:
+            guild = self.bot.get_guild(339155308767215618)
+            role = discord.utils.get(guild.roles, name='you brought this onto yourself')
+        for member in guild.members:
             if role in member.roles:
                 await member.remove_roles(role)
 
