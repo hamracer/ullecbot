@@ -8,7 +8,7 @@ import os
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
 bot = commands.Bot(command_prefix='.')  # bot command
-coglist = ['admin', 'anime', 'help', 'snail']
+coglist = ['admin', 'anime', 'help', 'snail', 'modabuse']
 bot.remove_command('help')
 
 def loadconfig():
