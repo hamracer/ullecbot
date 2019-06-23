@@ -21,13 +21,10 @@ def loadconfig():
             print('loading token for main bot')
             data = json.load(f)
             bot_token = data['bot_token']
-            
-                
 
-        return True
-    except Exception as e:
+    except:
         bot_token = os.environ.get('bot_token')
-
+        
 
 if not loadconfig():
     exit()
