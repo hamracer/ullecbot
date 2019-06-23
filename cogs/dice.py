@@ -15,10 +15,11 @@ class diceCog(commands.Cog, name="dice"):
     @commands.command()
     async def roll(self, ctx, *arg):
         r = 0
+        resultnum = 0
         output = []
         author = ctx.author.name
         titlestring = author + " just rolled the dice 🎲"
-        embed = discord.Embed()
+        embed = discord.Embed(color=9062d3)
         embed.set_author(name="ullec bot")
         embed.set_thumbnail(url=ctx.author.avatar_url)
         try:
@@ -41,12 +42,13 @@ class diceCog(commands.Cog, name="dice"):
                             rolls = int(arg[1])
                         if id == 1:
                             rolls = int(arg[0])
-                        if rolls > 10:
+                        if rolls > 14:
                             raise Exception
                     pass
             while rolls > r:
                 r += 1
                 result = self.dice(b)
+                resultnum = resultnum + int(result)
                 resultstring = "You rolled "+ result+"/"+str(b)
                 output.append(resultstring)
             if b > 100:
@@ -54,6 +56,8 @@ class diceCog(commands.Cog, name="dice"):
 
             foutput = '\n'.join(output)
             embed.add_field(name=titlestring, value=foutput)
+            totalstr = "Total of " + str(resultnum)
+            embed.add_field(name=totalstr, value="\u200b")
             await ctx.send(embed=embed)
         except Exception:
             await ctx.message.add_reaction(emoji=':worst:579662420537114626')
