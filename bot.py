@@ -21,15 +21,13 @@ def loadtoken():
         with open('configs/token.json') as f:
             print('loading token file for main bot')
             data = json.load(f)
-            try:
-                bot_token = data['bot_token']
-            except:
-                bot_token = os.environ.get('bot_token')
+            bot_token = data['bot_token']
+            return True
+    except:
+        bot_token = os.environ.get('bot_token')
         return True
 
-    except Exception as e:
-        print('Exception: ' + str(e))
-        return False
+
 
 if not loadtoken():
     exit()
