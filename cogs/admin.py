@@ -13,6 +13,7 @@ class adminCog(commands.Cog, name="admin"):
 
     def __init__(self, bot):
         self.bot = bot
+        
     def loadconfig():
         global banlist
         global pit
