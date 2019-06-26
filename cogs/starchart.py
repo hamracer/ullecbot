@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 check = []
-channellist = [562352225423458326, 262371002577715201]
+channellist = [562352225423458326, 262371002577715201, 339155308767215618]
 
 
 class starchartCog(commands.Cog, name="starchart"):
@@ -34,10 +34,41 @@ class starchartCog(commands.Cog, name="starchart"):
                     titlestr = ">["+str(message_id)+"]("+str(linkstr)+")"
                     newcontent = titlestr + "\n\n" + content
                     
+
+
+                        # for twitter or embeds
+                    if reaction.message.embeds:
+                        for i in reaction.message.embeds:
+                            emauthor = i.author
+                            emdescription = i.description
+                           
+                        emtwitter = "\n\n["+emauthor.name+"]"+"("+emauthor.url+")\n"+emdescription
+                        if content.strip(): 
+                            newcontent = newcontent + emtwitter
+                            embed = discord.Embed(color=0x9062d3, description=newcontent)    
+                        else: 
+                            titlestr = titlestr + emtwitter
+                            embed = discord.Embed(color=0x9062d3, description=titlestr)
+
+                        for i in reaction.message.embeds:
+                            print("iterator")
+                            emfields = i.fields
+                            if emfields:
+                                for o in emfields:
+                                    embed.add_field(name=o.name, value=o.value, inline=o.inline)
+                            emimage = i.image.url
+                            try:
+                                print("set image?")
+                                emimage = emimage.strip("large")
+                                emimage = emimage.strip(":")
+                            except:
+                                pass
+
                     if content.strip(): 
                         embed = discord.Embed(color=0x9062d3, description=newcontent)
                     else: 
                         embed = discord.Embed(color=0x9062d3, description=titlestr)
+                                    
                     embed.set_thumbnail(url=pfp)
                     embed.set_author(name=nick)
 
@@ -45,13 +76,16 @@ class starchartCog(commands.Cog, name="starchart"):
                     if reaction.message.attachments:
                         file = reaction.message.attachments[0]
                         if file.url.lower().endswith(('.png', '.jpeg', '.jpg', '.gif', '.webp')):
-                            dict['image'] = {'url':file.url}
+                            embed.set_image(url=file.url)
                         elif file.url.lower().endswith(('.webm')):
-                            dict['video'] = {'url':file.url, 'height':0, 'width':0}
+                            embed.set_video(url=file.url)
                         else:
-                            dict['fields'].append({'inline': True, 'name':'Attachment', 'value':f'[{file.filename}]({file.url})'})
-                    
-                    
+                            embed.add_field(name='Attachment', value=f'[{file.filename}]({file.url})', inline=False)
+
+                    if reaction.message.embeds:
+                        embed.set_image(url=emimage)
+
+
                         #find the starboard channel
                     for channel in reaction.message.guild.channels:
                         if str(channel) == "starboard":

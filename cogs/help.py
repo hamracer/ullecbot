@@ -42,11 +42,43 @@ class helpCog(commands.Cog, name="help"):
     async def print(self, ctx, arg):
         print(arg)
 
+    @commands.command()
+    async def m(self, ctx):
+        for i in ctx.message.embeds:
+            print("field")
+            print(i.author)
+            print(i.title)
+            print(i.url)
+            print(i.description)
+            print(i.fields)
+            print(i.image)
+
+    @commands.command()
+    async def e(self, ctx):
+        if ctx.message.embeds == True:
+            print("Hello")
+ 
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
     async def pitroulette(self, ctx):
         await ctx.send("%pitroulette")
+
+
+    @commands.command()
+    async def charinfo(self, ctx, *, characters: str):
+        """Shows you information about a number of characters.
+        Only up to 25 characters at a time.
+        """
+
+        def to_string(c):
+            digit = f'{ord(c):x}'
+            name = unicodedata.name(c, 'Name not found.')
+            return f'`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>'
+        msg = '\n'.join(map(to_string, characters))
+        if len(msg) > 2000:
+            return await ctx.send('Output too long to display.')
+        await ctx.send(msg)
 
 def setup(bot):
     bot.add_cog(helpCog(bot))
