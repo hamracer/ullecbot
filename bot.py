@@ -9,8 +9,8 @@ import os
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
 bot = commands.Bot(command_prefix='.')  # bot command
-coglist = ['help', 'starchart']
-# coglist = ['modabuse', 'snail', 'admin', 'help', 'starchart', 'dice']
+# coglist = ['help', 'starchart']
+coglist = ['snail', 'admin', 'help', 'starchart', 'dice']
 bot.remove_command('help')
 
 def loadtoken():

@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import unicodedata
 
 
 class helpCog(commands.Cog, name="help"):
@@ -59,17 +60,12 @@ class helpCog(commands.Cog, name="help"):
             print("Hello")
  
 
+
+
+
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def pitroulette(self, ctx):
-        await ctx.send("%pitroulette")
-
-
-    @commands.command()
     async def charinfo(self, ctx, *, characters: str):
-        """Shows you information about a number of characters.
-        Only up to 25 characters at a time.
-        """
 
         def to_string(c):
             digit = f'{ord(c):x}'

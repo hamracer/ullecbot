@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import random
 
-channellist = [508905628652142592, 339235017760833536]
+channellist = [508905628652142592, 339235017760833536, 508225092530995220]
 
 class diceCog(commands.Cog, name="dice"):
     def __init__(self, bot):

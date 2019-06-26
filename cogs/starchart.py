@@ -1,8 +1,9 @@
 import discord
 from discord.ext import commands
 
+
 check = []
-channellist = [562352225423458326, 262371002577715201, 339155308767215618]
+channellist = [339155308767215618]
 
 
 class starchartCog(commands.Cog, name="starchart"):
@@ -16,7 +17,7 @@ class starchartCog(commands.Cog, name="starchart"):
         
         if reaction.message.channel.id in channellist: 
             # check if reaction is a star
-            if reaction.emoji == "⭐" and len(await reaction.users().flatten()) >= 2:   
+            if reaction.emoji == "⭐" and len(await reaction.users().flatten()) >= 5:   
                 react_id = reaction.message.id
                     # check if reaction is pinned already
                 if react_id not in check:
@@ -71,6 +72,7 @@ class starchartCog(commands.Cog, name="starchart"):
                                     
                     embed.set_thumbnail(url=pfp)
                     embed.set_author(name=nick)
+                    embed.timestamp = reaction.message.created_at
 
                         # for attachments
                     if reaction.message.attachments:
