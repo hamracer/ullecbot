@@ -166,7 +166,7 @@ class adminCog(commands.Cog, name="admin"):
             return
         timer = arg
         if timer < 1:
-            timer = 3600
+            timer = 600
             await ctx.message.add_reaction(emoji=':worst:579662420537114626')
             self.unpitter.change_interval(seconds=timer)
         else:
