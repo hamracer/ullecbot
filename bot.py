@@ -12,7 +12,14 @@ import random
 bot = commands.Bot(command_prefix='.')  # bot command
 coglist = ['snail', 'admin', 'help', 'starchart', 'dice']
 bot.remove_command('help')
-spook = ["This only makes me stronger","I’m /gbfg/'s reckoning","GIVE ME MORE","Welcome to the future","Did you think that I'd forget?"]
+spook = [   "This only makes me stronger.",
+            "I’m /gbfg/'s reckoning.",
+            "GIVE ME MORE",
+            "Welcome to the future.",
+            "Did you think that I'd forget?",
+            "SHHHHHHHHHAAAAAAAAAAAAAARK",
+            "I am inevitable."
+            ]
 def loadtoken():
     # load globals defined in the config file
 
@@ -50,7 +57,7 @@ if __name__ == '__main__':
         if isinstance(error, CommandNotFound):
             await ctx.message.add_reaction(emoji=':worst:579662420537114626')
             if random.randint(1,10) <= 3:
-                await ctx.send(spook[random.randint(0,4)])
+                await ctx.send(spook[random.randint(0,6)])
             return
         raise error
 
