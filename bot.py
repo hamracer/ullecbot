@@ -50,7 +50,7 @@ if __name__ == '__main__':
         if isinstance(error, CommandNotFound):
             await ctx.message.add_reaction(emoji=':worst:579662420537114626')
             if random.randint(1,10) <= 3:
-                await ctx.send(spook[random.randint(0,4])
+                await ctx.send(spook[random.randint(0,4)])
             return
         raise error
 
