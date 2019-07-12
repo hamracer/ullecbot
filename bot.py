@@ -10,7 +10,7 @@ import random
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
 bot = commands.Bot(command_prefix='.')  # bot command
-coglist = ['snail', 'admin', 'help', 'starchart', 'dice']
+coglist = ['snail', 'admin', 'help', 'starchart', 'dice', 'echo']
 bot.remove_command('help')
 spook = [   "This only makes me stronger.",
             "I’m /gbfg/'s reckoning.",
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         
         if isinstance(error, CommandNotFound):
             await ctx.message.add_reaction(emoji='😠')
-            if random.randint(1,10) <= 3:
+            if random.randint(1,100) <= 30:
                 await ctx.send(spook[random.randint(0,6)])
             return
         raise error
