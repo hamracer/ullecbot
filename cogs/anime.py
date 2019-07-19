@@ -8,7 +8,12 @@ import json
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 today = datetime.datetime.today().strftime('%A')
-
+user = None
+msgr = None
+thismessage = None
+searchterm = None
+counter = None
+findcheck = None
 
 class animeCog(commands.Cog, name="anime"):
     dict_of_anime = None
@@ -63,7 +68,7 @@ class animeCog(commands.Cog, name="anime"):
                                         romaji
                                     }
                                     nextAiringEpisode{
-                                        airingAt
+                                            airingAt
                                     }
                                 }
                             }
@@ -82,11 +87,14 @@ class animeCog(commands.Cog, name="anime"):
 
         for show in data['data']['MediaListCollection']['lists'][0]['entries']:
             title = (show['media']['title']['romaji'])
-            airing = (show['media']['nextAiringEpisode']['airingAt'])
+            try:
+                airing = (show['media']['nextAiringEpisode']['airingAt'])
+                air_date = datetime.datetime.fromtimestamp(airing)
+                output[weekdays[air_date.weekday()]].append(title)
+            except:
+                pass
 
-            air_date = datetime.datetime.fromtimestamp(airing)
-            output[weekdays[air_date.weekday()]].append(title)
-
+            #  dictionary called output, inside list of weekdays, inside a list of days derived from the air_date
 
         return output
 
@@ -171,33 +179,72 @@ class animeCog(commands.Cog, name="anime"):
     @commands.has_role("anime")
     async def s(self, ctx, *args):
         if ctx.channel.id in channel_id:
+            global searchterm
             searchterm = (" ".join(args[:]))
-            searchterm = searchterm + " horriblesubs 720"
+            # searchterm = searchterm + " horriblesubs 720"
             # if ctx.channel.id == "590798224764436499":
-            i = 0
-            display = self.anime_embed(searchterm, i)
+            global counter
+            counter = 0
+            display = self.anime_embed(searchterm, counter)
+            global thismessage
             thismessage = await ctx.send(embed=display)
-            await thismessage.add_reaction(emoji=':best:579662404980572161')
-            await thismessage.add_reaction(emoji=':worst:579662420537114626')
-            
-            # author = ctx.author
-            # if author 
-            thismessage.reaction.
+            if findcheck is True: 
+                await thismessage.add_reaction(emoji=':best:579662404980572161')
+                await thismessage.add_reaction(emoji=':worst:579662420537114626')
+                global user
+                global msgr
+                user = ctx.message.author.id
+                msgr = thismessage.id
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        global counter
+        if payload.channel_id in channel_id:
+            if payload.message_id == msgr:
+                if payload.user_id == user:
+                    if payload.emoji.id == 579662420537114626:
+                        author = self.bot.get_user(user)
+                        print("Match")
+                        await thismessage.remove_reaction(self.bot.get_emoji(579662420537114626),author)
+                        counter = counter + 1  
+                        ndisplay = self.anime_embed(searchterm, counter)
+                        await thismessage.edit(embed=ndisplay)
+
+                    if payload.emoji.id == 579662404980572161:
+                        author = self.bot.get_user(user)
+                        print("Match")
+                        await thismessage.remove_reaction(self.bot.get_emoji(579662420537114626),author)
+                        counter = counter - 1  
+                        if counter < 0: 
+                            counter == 0
+                        ndisplay = self.anime_embed(searchterm, counter)
+                        await thismessage.edit(embed=ndisplay)
+            else:
+                print("payload does not match")
 
 
     def anime_embed(self, searchterm, i):     
         output=[]  
-        pants = Nyaa.search(keyword=searchterm, category=1, subcategory=2)     
-        current = pants[i]
+        pants = Nyaa.search(keyword=searchterm, category=1, subcategory=2)
+        global findcheck     
+        try:
+            current = pants[i]
+        except: 
+            embed = discord.Embed(description="There are no results for "+searchterm)
+            findcheck = False
+            return embed
         name = current["name"]
         baddl = current["download_url"]
         dl = baddl.replace('http', 'https')
-        output.append("You searched with: "+searchterm)
+        output.append("**Search**: "+searchterm )
         output.append("**Title**: "+ name)
         output.append("**DL**: "+ " [link]("+ dl + ")")
         foutput = '\n'.join(output)
         embed = discord.Embed()
-        embed.add_field(name="Searching Nyaa", value=foutput, inline=False)
+        v = i + 1
+        nameterm = "Searching Nyaa, result: " + str(v)
+        embed.add_field(name=nameterm, value=foutput, inline=False)
+        findcheck = True
         return embed
 
 
