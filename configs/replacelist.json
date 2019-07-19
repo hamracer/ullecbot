@@ -3,6 +3,26 @@
     {
       "Title": "Boku-tachi wa Benkyou ga Dekinai",
       "Replace": "Bokutachi wa Benkyou ga Dekinai"
+    },
+    {
+      "Title": "Sounan desu ka?",
+      "Replace": "Sounan desu ka"
+    },
+    {
+      "Title": "Dumbbell Nan Kilo Moteru?",
+      "Replace": "Dumbbell Nan Kilo Moteru"
+    },
+    {
+      "Title": "Senki Zesshou Symphogear XV",
+      "Replace": "Symphogear XV"
+    },W
+    {
+      "Title": "Re:Stage! Dream Days♪",
+      "Replace": "Re Stage! Dream Days"
+    }
+    {
+      "Title": "Uchi no Ko no Tame Naraba, Ore wa Moshikashitara",
+      "Replace": "UchiMusume"
     }
   ]
 }
