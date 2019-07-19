@@ -133,10 +133,9 @@ class animeCog(commands.Cog, name="anime"):
         for day in weekdays:
             list_of_anime = self.dict_of_anime.get(day, None)
             if list_of_anime:
-                output.append('**[' + day + ']** \n')
+                output.append('**[' + day + ']**')
                 for item in list_of_anime:
                     output.append(item)
-                output.append('\n')
         mess = '\n'.join(output)
         embedlist = discord.Embed()
         embedlist.add_field(name='Heres a list <:naneggu:564053655775346699>', value=mess, inline=False)
