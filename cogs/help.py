@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import unicodedata
 
+user = None
+msgr = None
 
 class helpCog(commands.Cog, name="help"):
     def __init__(self, bot):
@@ -15,15 +17,18 @@ class helpCog(commands.Cog, name="help"):
 
         helpmessage.append("# How to use ellec-bot")
         helpmessage.append("\n")
-        helpmessage.append("< Anime Functions >")
-        helpmessage.append("<anime functions only for 'anime' role and in #eye-cartons>")
-        helpmessage.append("anime - list of anime we're watching this season")
-        helpmessage.append("chen *- anime for that day with links")
-        helpmessage.append("        * defaults today"
-                           "        * yesterday"
-                           "        * day (eg. Friday)")
-        helpmessage.append("rebuild - rebuild the anime cache")
-        helpmessage.append("\n")
+        animerole = discord.utils.get(ctx.guild.roles, name="anime")
+        if animerole in author.roles:
+            helpmessage.append("< Anime Functions >")
+            helpmessage.append("<anime functions only for 'anime' role and in #eye-cartons>")
+            helpmessage.append("rebuild - rebuild the anime cache, use this if stuff doesnt work")
+            helpmessage.append("anime - list of anime we're watching this season")
+            helpmessage.append("s + *search* - searches nyaa.si with *search*")
+            helpmessage.append("chen *- anime for that day with links")
+            helpmessage.append("        * defaults today"
+                            "        * yesterday"
+                            "        * day (eg. Friday)")
+            helpmessage.append("\n")
 
         helpmessage.append('< Admin Functions >')
         helpmessage.append('banlist - list of banned words/phrases')
@@ -54,11 +59,32 @@ class helpCog(commands.Cog, name="help"):
             print(i.fields)
             print(i.image)
 
-    @commands.command()
-    async def e(self, ctx):
-        if ctx.message.embeds == True:
-            print("Hello")
- 
+    # @commands.command()
+    # @commands.has_permissions(manage_roles=True)
+    # async def e(self, ctx):
+    #     thismessage = await ctx.send("Test Message")
+    #     await thismessage.add_reaction(emoji='😃')
+    #     global user
+    #     global msgr
+    #     user = ctx.message.author.id
+    #     msgr = thismessage.id
+    #     print("user:"+str(user))
+    #     print("msgr:"+str(msgr))
+
+    # @commands.Cog.listener()
+    # async def on_raw_reaction_add(self, payload):
+    #     print(payload.guild_id)
+    #     if payload.guild_id == 562352224840187917:
+    #         print(str(user)+ " vs "+str(payload.user_id))
+    #         print(str(msgr)+ " vs "+str(payload.message_id))
+
+    #         if payload.message_id == msgr:
+    #             if payload.user_id == user:
+    #                 print("match!")
+
+    #         else:
+    #             print("payload does not match")
+
 
 
 
