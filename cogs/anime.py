@@ -213,7 +213,7 @@ class animeCog(commands.Cog, name="anime"):
                     if payload.emoji.id == 579662404980572161:
                         author = self.bot.get_user(user)
                         print("Match")
-                        await thismessage.remove_reaction(self.bot.get_emoji(579662420537114626),author)
+                        await thismessage.remove_reaction(self.bot.get_emoji(579662404980572161),author)
                         counter = counter - 1  
                         if counter < 0: 
                             counter == 0
