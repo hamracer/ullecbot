@@ -5,9 +5,11 @@ import datetime
 from collections import defaultdict
 import requests
 import json
+import pytz
+
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-today = datetime.datetime.today().strftime('%A')
+today = datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%A')
 user = None
 msgr = None
 thismessage = None
@@ -30,7 +32,7 @@ class animeCog(commands.Cog, name="anime"):
         global replacelist
 
         try:
-            with open('configs/replacelist.json') as f:
+            with open('configs/replacelist.json', encoding='utf-8') as f:
                 print('loading replace list')
                 data = json.load(f)
                 replacelist = data['replacelist']
@@ -103,24 +105,30 @@ class animeCog(commands.Cog, name="anime"):
         list_of_anime = self.dict_of_anime.get(day, None)
         output = []
         if list_of_anime:
-            output.append('**[' + day + ']** \n')
+            output.append('**[' + datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%a, %H:%M:%S') + " JST" + ']** \n')
             for item in list_of_anime:
                 async with ctx.typing():
-                    for a in replacelist:
-                        for i in list_of_anime:
-                            if a['Title'] == i:
-                                term = item.replace(a['Title'], a['Replace'])  # some titles dont work replace here
+                    for anime in list_of_anime:
+                        for replacer in replacelist:
+                            title = replacer['Title']
+                            newtitle = replacer['Replace']
+                            if title == anime:
+                                term = item.replace(title, newtitle)
                                 break
                             else:
                                 term = item
+                            
                     search = term + " horriblesubs 720"
                     pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                    latest = pants[0]
-                    torrentname = latest["name"]
-                    animelink = latest["download_url"]
-                    newanimelink = animelink.replace('http', 'https')  # replace http with https
-                    output.append("**" + item + "**")
-                    output.append(torrentname + " [link]("+ newanimelink + ")")
+                    try:
+                        latest = pants[0]
+                        torrentname = latest["name"]
+                        animelink = latest["download_url"]
+                        newanimelink = animelink.replace('http', 'https')  # replace http with https
+                        output.append("**" + item + "**")
+                        output.append(torrentname + " [link]("+ newanimelink + ")")
+                    except:
+                        output.append("Something went wrong <:naneugg:564051785673867313>")
 
         mess = '\n'.join(output)
         embed = discord.Embed()
@@ -152,7 +160,7 @@ class animeCog(commands.Cog, name="anime"):
                 await ctx.send("Give me some time <:naneugg:564051785673867313>")
                 await self.get_weekday_anime(ctx, day)
             if day == "Yesterday":
-                yesterday = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime('%A')
+                yesterday = (datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')) - datetime.timedelta(days=1)).strftime('%A')
                 day = yesterday
                 await ctx.send("Give me some time <:naneugg:564051785673867313>")
                 await self.get_weekday_anime(ctx, day)
@@ -180,13 +188,12 @@ class animeCog(commands.Cog, name="anime"):
         if ctx.channel.id in channel_id:
             global searchterm
             searchterm = (" ".join(args[:]))
-            # searchterm = searchterm + " horriblesubs 720"
-            # if ctx.channel.id == "590798224764436499":
             global counter
             counter = 0
-            display = self.anime_embed(searchterm, counter)
-            global thismessage
-            thismessage = await ctx.send(embed=display)
+            async with ctx.typing():
+                display = self.anime_embed(searchterm, counter)
+                global thismessage
+                thismessage = await ctx.send(embed=display)
             if findcheck is True: 
                 await thismessage.add_reaction(emoji=':best:579662404980572161')
                 await thismessage.add_reaction(emoji=':worst:579662420537114626')
