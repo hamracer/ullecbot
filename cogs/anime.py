@@ -9,7 +9,10 @@ import pytz
 
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-today = datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%A')
+try:
+    today = datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%A')
+except:
+    today = datetime.datetime.today().strftime('%A')
 user = None
 msgr = None
 thismessage = None
@@ -105,7 +108,10 @@ class animeCog(commands.Cog, name="anime"):
         list_of_anime = self.dict_of_anime.get(day, None)
         output = []
         if list_of_anime:
-            output.append('**[' + datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%a, %H:%M:%S') + " JST" + ']** \n')
+            try:
+                output.append('**[' + datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%a, %H:%M:%S') + " JST" + ']** \n')
+            except:
+                output.append('**[' + datetime.datetime.now().strftime('%a, %H:%M:%S') + " JST" + ']** \n')
             for item in list_of_anime:
                 async with ctx.typing():
                     for anime in list_of_anime:
