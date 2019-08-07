@@ -9,7 +9,7 @@ import pytz
 
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-today = datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%A')
+today = datetime.datetime.now(tz=pytz.timezone('America/Chicago')).strftime('%A')
 
 user = None
 msgr = None
