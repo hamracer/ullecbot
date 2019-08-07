@@ -9,7 +9,7 @@ import pytz
 
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-today = datetime.datetime.now(tz=pytz.timezone('America/Chicago')).strftime('%A')
+today = datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%A')
 
 user = None
 msgr = None
@@ -92,7 +92,7 @@ class animeCog(commands.Cog, name="anime"):
             title = (show['media']['title']['romaji'])
             try:
                 airing = (show['media']['nextAiringEpisode']['airingAt'])
-                air_date = datetime.datetime.fromtimestamp(airing)
+                air_date = (datetime.datetime.fromtimestamp(airing) - datetime.timedelta(hours=10))
                 output[weekdays[air_date.weekday()]].append(title)
             except:
                 pass

@@ -32,6 +32,9 @@ class historyCog(commands.Cog, name="history"):
         await thismessage.add_reaction(emoji=':best:579662404980572161')
         await thismessage.add_reaction(emoji=':worst:579662420537114626')
 
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        
 
 
 def setup(bot):
