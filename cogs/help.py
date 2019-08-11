@@ -33,8 +33,8 @@ class helpCog(commands.Cog, name="help"):
         helpmessage.append('< Admin Functions >')
         helpmessage.append('banlist - list of banned words/phrases')
         helpmessage.append('status - list of current function statuses')
-        modrole = discord.utils.get(ctx.guild.roles, name="mod")
-        if modrole in author.roles:
+        
+        if ctx.guild.get_member(author.id).guild_permissions.manage_messages:
             helpmessage.append('pit - toggles pit function')
             helpmessage.append('unpit - toggles an unpit function')
             helpmessage.append('timer * - change the time on unpit after the next unpit')
@@ -49,45 +49,11 @@ class helpCog(commands.Cog, name="help"):
         print(arg)
 
     @commands.command()
-    async def m(self, ctx):
-        for i in ctx.message.embeds:
-            print("field")
-            print(i.author)
-            print(i.title)
-            print(i.url)
-            print(i.description)
-            print(i.fields)
-            print(i.image)
-
-    # @commands.command()
-    # @commands.has_permissions(manage_roles=True)
-    # async def e(self, ctx):
-    #     thismessage = await ctx.send("Test Message")
-    #     await thismessage.add_reaction(emoji='😃')
-    #     global user
-    #     global msgr
-    #     user = ctx.message.author.id
-    #     msgr = thismessage.id
-    #     print("user:"+str(user))
-    #     print("msgr:"+str(msgr))
-
-    # @commands.Cog.listener()
-    # async def on_raw_reaction_add(self, payload):
-    #     print(payload.guild_id)
-    #     if payload.guild_id == 562352224840187917:
-    #         print(str(user)+ " vs "+str(payload.user_id))
-    #         print(str(msgr)+ " vs "+str(payload.message_id))
-
-    #         if payload.message_id == msgr:
-    #             if payload.user_id == user:
-    #                 print("match!")
-
-    #         else:
-    #             print("payload does not match")
-
-
-
-
+    async def permcheck(self, ctx):
+        id = ctx.author.id
+        member = ctx.guild.get_member(id)
+        if member.guild_permissions.manage_messages:
+            print("IS A MOD")
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
