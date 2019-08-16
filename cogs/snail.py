@@ -32,18 +32,18 @@ class snailCog(commands.Cog, name="snail"):
         percentage_chance = 6
         if reaction.emoji == "🐌":
             z = random.randint(1,100)
-            print(user)
-            print(z)
             if z < percentage_chance:
                 x = random.randrange(0, 8)
                 for val in snailarmy[x:len(snailarmy)]:
                     await reaction.message.add_reaction(emoji=val)
-
-
-    @commands.Cog.listener()
-    async def on_message(self, message): #  used to check emotes in test channel
-        if message.channel.id == 585758519500865546:
-            print(message.content)
+        
+        percentage_chance_for_mod = 33
+        if reaction.emoji == "🐌" and reaction.message.guild.get_member(user.id).guild_permissions.manage_messages:
+            z = random.randint(1,100)
+            if z < percentage_chance_for_mod:
+                x = random.randrange(0, 8)
+                for val in snailarmy[x:len(snailarmy)]:
+                    await reaction.message.add_reaction(emoji=val)
 
 
 
