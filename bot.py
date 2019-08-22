@@ -10,7 +10,8 @@ import random
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
 bot = commands.Bot(command_prefix='.')  # bot command
-coglist = ['snail', 'admin', 'help', 'starchart', 'dice', 'echo', 'pingstats', 'anime','dnd']
+#'snail', 'admin', 'help', 'starchart', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu'
+coglist = ['snail', 'admin', 'help', 'starchart', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu']
 bot.remove_command('help')
 spook = [   "This only makes me stronger.",
             "I’m /gbfg/'s reckoning.",

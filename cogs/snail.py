@@ -2,9 +2,11 @@ import discord
 from discord.ext import commands
 import random
 import json
+import asyncio
 
 
 snailarmy = []
+nolist = [] 
 
 class snailCog(commands.Cog, name="snail"):
     def __init__(self, bot):
@@ -30,7 +32,7 @@ class snailCog(commands.Cog, name="snail"):
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         
-        if reaction.emoji == "🐌" and reaction.message.guild.get_member(user.id).guild_permissions.manage_messages:
+        if reaction.emoji == "🐌" and reaction.message.guild.get_member(user.id).guild_permissions.manage_messages and user.id not in nolist:
             z = random.randint(1,100)
             percentage_chance_for_mod = 33
             if z < percentage_chance_for_mod:
@@ -38,7 +40,7 @@ class snailCog(commands.Cog, name="snail"):
                 for val in snailarmy[x:len(snailarmy)]:
                     await reaction.message.add_reaction(emoji=val)
 
-        elif reaction.emoji == "🐌":
+        elif reaction.emoji == "🐌" and user.id not in nolist:
             z = random.randint(1,100)
             percentage_chance = 6
             if z < percentage_chance:
@@ -47,7 +49,13 @@ class snailCog(commands.Cog, name="snail"):
                     await reaction.message.add_reaction(emoji=val)
         
 
-
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        channel = self.bot.get_channel(payload.channel_id)
+        user = channel.guild.get_member(payload.user_id)
+        nolist.append(user.id)
+        await asyncio.sleep(30)
+        nolist.remove(user.id)
 
 
 

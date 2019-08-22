@@ -2,6 +2,7 @@ import discord
 from discord.ext import tasks, commands
 import json
 import re
+import asyncio
 
 pit = None
 unpit = None
@@ -233,6 +234,27 @@ class adminCog(commands.Cog, name="admin"):
                            f"Unpit is at < {timer} >\n"
                            f"```")
             await ctx.send(string)
+
+    @commands.command()
+    async def contain(self, ctx, arg1, arg2):
+        arg1 = arg1.strip("<@")
+        try:
+            arg1 = arg1.strip("!")
+        except:
+            pass
+        userid = arg1.strip(">")
+        userid = int(userid)
+
+        timer = int(arg2)
+        minutes = timer * 60
+        user = ctx.guild.get_member(userid)
+
+        role = discord.utils.get(ctx.guild.roles, name='forced containment')
+
+        await user.add_roles(role)
+        await asyncio.sleep(minutes)
+        await user.remove_roles(role)
+        
 
 
 def setup(bot):
