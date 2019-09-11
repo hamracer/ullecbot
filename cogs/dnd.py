@@ -50,7 +50,7 @@ class dndCog(commands.Cog, name="dnd"):
                 titlestring = author + " is rolling 🎲🎲🎲"
                 embed.insert_field_at(index=1, name=titlestring, value=foutput)
                 percentile = int(sum(total) / 108 * 100)
-                stats = "-------------------------"
+                stats = "---------------------------------"
                 after = str(percentile)[-1]
                 if after == "1":
                     end = "st"

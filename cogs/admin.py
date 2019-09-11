@@ -235,6 +235,7 @@ class adminCog(commands.Cog, name="admin"):
                            f"```")
             await ctx.send(string)
 
+    @commands.has_permissions(manage_roles=True)
     @commands.command()
     async def contain(self, ctx, arg1, arg2):
         arg1 = arg1.strip("<@")
