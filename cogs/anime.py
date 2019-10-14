@@ -161,6 +161,7 @@ class animeCog(commands.Cog, name="anime"):
 
         mess = '\n'.join(output)
         embed = discord.Embed()
+        print(len(mess))
         embed.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess, inline=False)
         await ctx.send(embed=embed)
 
