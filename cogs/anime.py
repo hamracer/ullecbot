@@ -119,17 +119,41 @@ class animeCog(commands.Cog, name="anime"):
                             else:
                                 term = item
                             
-                    search = term + " horriblesubs 720"
-                    pants = Nyaa.search(keyword=search, category=1, subcategory=2)
+                    
                     try:
+                        search = term + " horriblesubs 720"
+                        pants = Nyaa.search(keyword=search, category=1, subcategory=2)
                         latest = pants[0]
                         torrentname = latest["name"]
                         animelink = latest["download_url"]
                         newanimelink = animelink.replace('http', 'https')  # replace http with https
                         output.append("**" + item + "**")
                         output.append(torrentname + " [link]("+ newanimelink + ")")
+                        
                     except:
-                        output.append("Something went wrong <:naneugg:564051785673867313>")
+                        try: 
+                            search = term + " judas"
+                            pants = Nyaa.search(keyword=search, category=1, subcategory=2)
+                            latest = pants[0]
+                            torrentname = latest["name"]
+                            animelink = latest["download_url"]
+                            newanimelink = animelink.replace('http', 'https')  # replace http with https
+                            output.append("**" + item + "**")
+                            output.append(torrentname + " [link]("+ newanimelink + ")")
+                        except:
+                            try: 
+                                search = term + " PAS"
+                                pants = Nyaa.search(keyword=search, category=1, subcategory=2)
+                                latest = pants[0]
+                                torrentname = latest["name"]
+                                animelink = latest["download_url"]
+                                newanimelink = animelink.replace('http', 'https')  # replace http with https
+                                output.append("**" + item + "**")
+                                output.append(torrentname + " [link]("+ newanimelink + ")")
+                            except:
+                                output.append("Something went wrong <:naneugg:564051785673867313>")
+
+
 
         mess = '\n'.join(output)
         embed = discord.Embed()
