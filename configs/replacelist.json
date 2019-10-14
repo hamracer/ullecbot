@@ -2,7 +2,7 @@
   "replacelist":[
     {
       "Title": "Boku-tachi wa Benkyou ga Dekinai 2",
-      "Replace": "Bokutachi wa Benkyou ga Dekinai S2"
+      "Replace": "Bokutachi wa Benkyou ga Dekinai"
     },
     {
       "Title": "Fate/Grand Order: Zettai Majuu Sensen Babylonia",
@@ -13,8 +13,8 @@
       "Replace": "ZX - Code Reunion"
     },
     {
-      "Title": "Senki Zesshou Symphogear XV",
-      "Replace": "Symphogear XV"
+      "Title": "Keishicho Tokumu-bu Tokushu Kyoaku-han Taisaku-Shitsu Dai-Nana-ka: Tokunana",
+      "Replace": "Special 7"
     },
     {
       "Title": "Re:Stage! Dream Days♪",
@@ -25,8 +25,8 @@
       "Replace": "UchiMusume"
     },
     {
-      "Title": "Tsuujou Kougeki ga Zentai Kougeki de Ni-kai Kougeki no Okaasan wa Suki desu ka?",
-      "Replace": "Okaa-san Online"
+      "Title": "Babylon",
+      "Replace": "Babylon -fate"
     }
   ]
 }

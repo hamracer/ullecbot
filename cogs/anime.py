@@ -160,9 +160,9 @@ class animeCog(commands.Cog, name="anime"):
                                 output.append("Something went wrong <:naneugg:564051785673867313>")
 
 
-        if len(output) >= 8:
-            output1 = output[:8]
-            output2 = output[8:]
+        if len(output) >= 9:
+            output1 = output[:9]
+            output2 = output[9:]
             mess1 = '\n'.join(output1) 
             mess2 = '\n'.join(output2)
             embed1 = discord.Embed()
