@@ -167,8 +167,8 @@ class animeCog(commands.Cog, name="anime"):
             mess2 = '\n'.join(output2)
             embed1 = discord.Embed()
             embed2 = discord.Embed()
-            embed1.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess, inline=False)
-            embed2.add_field(name='More anime time <:naneggu:564053655775346699>', value=mess, inline=False)
+            embed1.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess1, inline=False)
+            embed2.add_field(name='More anime time <:naneggu:564053655775346699>', value=mess2, inline=False)
             await ctx.send(embed=embed1)
             await ctx.send(embed=embed2)
         else:
