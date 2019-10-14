@@ -161,8 +161,8 @@ class animeCog(commands.Cog, name="anime"):
 
 
         if len(output) >= 5:
-            output1 = output(:5)
-            output2 = output(5:)
+            output1 = output[:5]
+            output2 = output[5:]
             mess1 = '\n'.join(output1) 
             mess2 = '\n'.join(output2)
             embed1 = discord.Embed()
