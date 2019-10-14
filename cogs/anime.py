@@ -121,6 +121,7 @@ class animeCog(commands.Cog, name="anime"):
                             
                     
                     try:
+                        print("hs")
                         search = term + " horriblesubs 720"
                         pants = Nyaa.search(keyword=search, category=1, subcategory=2)
                         latest = pants[0]
@@ -131,7 +132,8 @@ class animeCog(commands.Cog, name="anime"):
                         output.append(torrentname + " [link]("+ newanimelink + ")")
                         
                     except:
-                        try: 
+                        try:
+                            print("judas")
                             search = term + " judas"
                             pants = Nyaa.search(keyword=search, category=1, subcategory=2)
                             latest = pants[0]
@@ -141,7 +143,8 @@ class animeCog(commands.Cog, name="anime"):
                             output.append("**" + item + "**")
                             output.append(torrentname + " [link]("+ newanimelink + ")")
                         except:
-                            try: 
+                            try:
+                                print("PAS")
                                 search = term + " PAS"
                                 pants = Nyaa.search(keyword=search, category=1, subcategory=2)
                                 latest = pants[0]
@@ -151,6 +154,7 @@ class animeCog(commands.Cog, name="anime"):
                                 output.append("**" + item + "**")
                                 output.append(torrentname + " [link]("+ newanimelink + ")")
                             except:
+                                print("issue: " +term)
                                 output.append("Something went wrong <:naneugg:564051785673867313>")
 
 
