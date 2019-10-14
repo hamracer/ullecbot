@@ -171,7 +171,7 @@ class animeCog(commands.Cog, name="anime"):
             embed2.add_field(name='More anime time <:naneggu:564053655775346699>', value=mess, inline=False)
             await ctx.send(embed=embed1)
             await ctx.send(embed=embed2)
-        else
+        else:
             mess = '\n'.join(output)
             embed = discord.Embed()
             print(len(mess))
