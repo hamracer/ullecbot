@@ -105,6 +105,8 @@ class animeCog(commands.Cog, name="anime"):
     async def get_weekday_anime(self, ctx, day):
         list_of_anime = self.dict_of_anime.get(day, None)
         output = []
+        output1 = []
+        output2 = []
         if list_of_anime:
             output.append('**[' + datetime.datetime.now(tz=pytz.timezone('Asia/Tokyo')).strftime('%a, %H:%M:%S') + " JST" + ']** \n')
             for item in list_of_anime:
