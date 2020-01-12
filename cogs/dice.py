@@ -67,7 +67,7 @@ class diceCog(commands.Cog, name="dice"):
 
                 foutput = '\n'.join(output)
                 embed.insert_field_at(index=1, name=titlestring, value=foutput)
-                totalstr = "For a total of " + str(resultnum) + ". Average of " + str(round(resultnum/rolls),0)
+                totalstr = "For a total of " + str(resultnum) + ". Average of " + str(round(int(resultnum)/int(rolls)),0)
                 embed.insert_field_at(index=5, name=totalstr, value="\u200b", inline=False)
                 await ctx.send(embed=embed)
             except Exception as e:
