@@ -80,6 +80,7 @@ class diceCog(commands.Cog, name="dice"):
                 totalstr = "Total: " + str(resultnum) + " Average: " + str(round(int(resultnum)/int(rolls),2)) + " Percentile: " + str(int(int(resultnum) * 100 / (int(rolls) * int(b))))
                 embed.insert_field_at(index=5, name=totalstr, value="\u200b", inline=False)
                 await ctx.send(embed=embed)
+                rolllist.append(ctx.author.id)
             except Exception as e:
                 print('Exception: ' + str(e)) 
                 await ctx.message.add_reaction(emoji=':worst:579662420537114626')
