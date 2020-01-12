@@ -3,6 +3,8 @@ from discord.ext import commands
 import random
 
 channellist = [508905628652142592, 339235017760833536, 508225092530995220, 339155308767215618]
+rolllist = []
+
 
 class diceCog(commands.Cog, name="dice"):
     def __init__(self, bot):
@@ -17,7 +19,13 @@ class diceCog(commands.Cog, name="dice"):
 # the idea is you can choose the number of dice and what dice to roll
     @commands.command()
     async def roll(self, ctx, *arg):
-        if ctx.channel.id in channellist: 
+
+        global rolllist
+        if ctx.author.id in rolllist:
+            await ctx.message.add_reaction(emoji=':worst:579662420537114626')
+            return
+
+        elif ctx.channel.id in channellist: 
             r = 0
             resultnum = 0
             output = []
@@ -74,7 +82,10 @@ class diceCog(commands.Cog, name="dice"):
                 print('Exception: ' + str(e)) 
                 await ctx.message.add_reaction(emoji=':worst:579662420537114626')
 
-    
+    @tasks.loop(minutes=5)
+    async def clear(self):
+        global rolllist
+        rolllist=[]    
 
 def setup(bot):
     bot.add_cog(diceCog(bot))
