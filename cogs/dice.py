@@ -61,8 +61,7 @@ class diceCog(commands.Cog, name="dice"):
                                 rolls = int(arg[1])
                             if id == 1:
                                 rolls = int(arg[0])
-                            if rolls > 14:
-                                raise Exception
+                            
                         pass
                 while rolls > r:
                     r += 1
@@ -72,10 +71,13 @@ class diceCog(commands.Cog, name="dice"):
                     output.append(resultstring)
                 if b > 100:
                     raise Exception
+                if rolls > 14:
+                    raise Exception
 
                 foutput = '\n'.join(output)
                 embed.insert_field_at(index=1, name=titlestring, value=foutput)
-                totalstr = "Total: " + str(resultnum) + " Average: " + str(round(int(resultnum)/int(rolls),2)) + " Percentile: " + str(int(int(resultnum) / (int(rolls) * int(b))))
+                print(resultnum + " " + rolls + " " + b)
+                totalstr = "Total: " + str(resultnum) + " Average: " + str(round(int(resultnum)/int(rolls),2)) + " Percentile: " + str(int(int(resultnum) * 100 / (int(rolls) * int(b))))
                 embed.insert_field_at(index=5, name=totalstr, value="\u200b", inline=False)
                 await ctx.send(embed=embed)
             except Exception as e:
