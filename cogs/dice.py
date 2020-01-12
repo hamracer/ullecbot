@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import random
 
 channellist = [508905628652142592, 339235017760833536, 508225092530995220, 339155308767215618]
@@ -82,7 +82,7 @@ class diceCog(commands.Cog, name="dice"):
                 print('Exception: ' + str(e)) 
                 await ctx.message.add_reaction(emoji=':worst:579662420537114626')
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=2)
     async def clear(self):
         global rolllist
         rolllist=[]    
