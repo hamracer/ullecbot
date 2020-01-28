@@ -9,6 +9,7 @@ rolllist = []
 class diceCog(commands.Cog, name="dice"):
     def __init__(self, bot):
         self.bot = bot
+        self.clear.start()
 
     def dice(self, sides):
         roll = random.randint(1,sides)
@@ -21,6 +22,7 @@ class diceCog(commands.Cog, name="dice"):
     async def roll(self, ctx, *arg):
 
         global rolllist
+        print(rolllist)
         if ctx.author.id in rolllist:
             await ctx.message.add_reaction(emoji=':worst:579662420537114626')
             return
