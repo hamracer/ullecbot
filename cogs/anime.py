@@ -163,11 +163,11 @@ class animeCog(commands.Cog, name="anime"):
             sliceObject = output[x*9:(x+1)*9]
             await self.animeEmbedOutput(ctx, sliceObject, embedField)
 
-    async def animeEmbedOutput(self, ctx, listSlice, embedField):
+    async def animeEmbedOutput(self, ctx, listSlice, title):
         outputList = '\n'.join(listSlice)
         embed = discord.Embed()
         print(len(outputList))
-        embed.add_field(name=embedField, value=outputList, inline=False)
+        embed.add_field(name=title, value=outputList, inline=False)
         await ctx.send(embed=embed)
 
 
