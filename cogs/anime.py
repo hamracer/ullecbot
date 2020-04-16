@@ -156,17 +156,17 @@ class animeCog(commands.Cog, name="anime"):
         totalEmbedsPages = len(output) / 9
         
         for x in range(totalEmbedsPages+1):
+            if x == 0:
+                embedField = 'Anime time <:naneggu:564053655775346699>'
+            else:
+                embedField = 'More Anime time <:naneggu:564053655775346699>'
             sliceObject = output[x*9:(x+1)*9]
-            await self.animeEmbedOutput(ctx, sliceObject, x)
+            await self.animeEmbedOutput(ctx, sliceObject, embedField)
 
-    async def animeEmbedOutput(self, ctx, listSlice, x):
+    async def animeEmbedOutput(self, ctx, listSlice, embedField):
         outputList = '\n'.join(listSlice)
         embed = discord.Embed()
         print(len(outputList))
-        if x == 0:
-            embedField = 'Anime time <:naneggu:564053655775346699>'
-        else:
-            embedField = 'More Anime time <:naneggu:564053655775346699>'
         embed.add_field(name=embedField, value=outputList, inline=False)
         await ctx.send(embed=embed)
 
@@ -179,11 +179,8 @@ class animeCog(commands.Cog, name="anime"):
                 output.append('**[' + day + ']**')
                 for item in list_of_anime:
                     output.append(item)
-        mess = '\n'.join(output)
-        embedlist = discord.Embed()
-        embedlist.add_field(name='Heres a list <:naneggu:564053655775346699>', value=mess, inline=False)
-        await ctx.send(embed=embedlist)
 
+        await self.animeEmbedOutput(ctx, output, 'Heres a list <:naneggu:564053655775346699>')
 
 
     @commands.command()
