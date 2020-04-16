@@ -17,9 +17,14 @@ thismessage = None
 searchterm = None
 counter = None
 findcheck = None
+replacelist = None
+channel_id = None
+server_id = None
 
 class animeCog(commands.Cog, name="anime"):
     dict_of_anime = None
+
+    searchOptions = ["horriblesubs 720", "judas", "PAS"]
 
     def __init__(self, bot):
         self.bot = bot
@@ -28,8 +33,19 @@ class animeCog(commands.Cog, name="anime"):
             print('bulding anime shit')
             self.dict_of_anime = self.dict_builder()
 
+        loadconfig()
+        loadreplace()
 
-    def loadreplace():
+    def searchNyaa(self, animeName, term):
+        search = " ".join([animeName, term])
+        searchOutput = Nyaa.search(keyword=search, category=1, subcategory=2)
+        latest = searchOutput[0]
+        torrentName = latest["name"]
+        animelink = latest["download_url"]
+        newAnimeLink = animelink.replace('http', 'https')  # replace http with https
+        return torrentName, newAnimeLink
+    
+    def loadreplace(self):
         global replacelist
 
         try:
@@ -42,7 +58,7 @@ class animeCog(commands.Cog, name="anime"):
             print('Exception: ' + str(e))
             return False
 
-    def loadconfig():
+    def loadconfig(self):
         global channel_id
         global server_id
 
@@ -57,8 +73,7 @@ class animeCog(commands.Cog, name="anime"):
             print('Exception: ' + str(e))
             return False
 
-    loadconfig()
-    loadreplace()
+
 
     def dict_builder(self):
         query = '''
@@ -120,44 +135,23 @@ class animeCog(commands.Cog, name="anime"):
                                 break
                             else:
                                 term = item
-                            
-                    
-                    try:
-                        print("hs")
-                        search = term + " horriblesubs 720"
-                        pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                        latest = pants[0]
-                        torrentname = latest["name"]
-                        animelink = latest["download_url"]
-                        newanimelink = animelink.replace('http', 'https')  # replace http with https
-                        output.append("**" + item + "**")
-                        output.append(torrentname + " [link]("+ newanimelink + ")")
-                        
-                    except:
+
+                    # use iteration instead of a billion tries
+                    for searchTerm in self.searchOptions:
+                        foundSwitch = False
+                        print(searchTerm)
                         try:
-                            print("judas")
-                            search = term + " judas"
-                            pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                            latest = pants[0]
-                            torrentname = latest["name"]
-                            animelink = latest["download_url"]
-                            newanimelink = animelink.replace('http', 'https')  # replace http with https
-                            output.append("**" + item + "**")
-                            output.append(torrentname + " [link]("+ newanimelink + ")")
-                        except:
-                            try:
-                                print("PAS")
-                                search = term + " PAS"
-                                pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                                latest = pants[0]
-                                torrentname = latest["name"]
-                                animelink = latest["download_url"]
-                                newanimelink = animelink.replace('http', 'https')  # replace http with https
+                            torrentName, torrentLink = self.searchNyaa(term, searchTerm)
+                            if output:
+                                foundSwitch = True
                                 output.append("**" + item + "**")
-                                output.append(torrentname + " [link]("+ newanimelink + ")")
-                            except:
-                                print("issue: " +term)
-                                output.append("Something went wrong <:naneugg:564051785673867313>")
+                                output.append(torrentName + " [link]("+ torrentLink + ")")
+                                break
+                        except:
+                            pass
+                    if not foundSwitch:
+                        print("issue, couldn't find anime: " + term)
+                        output.append("Something went wrong <:naneugg:564051785673867313>")
 
 
         if len(output) >= 9:
