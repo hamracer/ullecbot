@@ -17,9 +17,14 @@ thismessage = None
 searchterm = None
 counter = None
 findcheck = None
+replacelist = None
+channel_id = None
+server_id = None
 
 class animeCog(commands.Cog, name="anime"):
     dict_of_anime = None
+
+    searchOptions = ["horriblesubs 720", "judas", "PAS"]
 
     def __init__(self, bot):
         self.bot = bot
@@ -28,8 +33,19 @@ class animeCog(commands.Cog, name="anime"):
             print('bulding anime shit')
             self.dict_of_anime = self.dict_builder()
 
+        loadconfig()
+        loadreplace()
 
-    def loadreplace():
+    async def searchNyaa(self, animeName, term):
+        search = " ".join([animeName, term])
+        searchOutput = Nyaa.search(keyword=search, category=1, subcategory=2)
+        latest = searchOutput[0]
+        torrentName = latest["name"]
+        animelink = latest["download_url"]
+        newAnimeLink = animelink.replace('http://', 'https://')  # replace http with https
+        return torrentName, newAnimeLink
+    
+    def loadreplace(self):
         global replacelist
 
         try:
@@ -42,7 +58,7 @@ class animeCog(commands.Cog, name="anime"):
             print('Exception: ' + str(e))
             return False
 
-    def loadconfig():
+    def loadconfig(self):
         global channel_id
         global server_id
 
@@ -57,8 +73,7 @@ class animeCog(commands.Cog, name="anime"):
             print('Exception: ' + str(e))
             return False
 
-    loadconfig()
-    loadreplace()
+
 
     def dict_builder(self):
         query = '''
@@ -120,63 +135,40 @@ class animeCog(commands.Cog, name="anime"):
                                 break
                             else:
                                 term = item
-                            
-                    
-                    try:
-                        print("hs")
-                        search = term + " horriblesubs 720"
-                        pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                        latest = pants[0]
-                        torrentname = latest["name"]
-                        animelink = latest["download_url"]
-                        newanimelink = animelink.replace('http', 'https')  # replace http with https
-                        output.append("**" + item + "**")
-                        output.append(torrentname + " [link]("+ newanimelink + ")")
-                        
-                    except:
+
+                    # use iteration instead of a billion tries
+                    for searchTerm in self.searchOptions:
+                        foundSwitch = False
+                        print(searchTerm)
                         try:
-                            print("judas")
-                            search = term + " judas"
-                            pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                            latest = pants[0]
-                            torrentname = latest["name"]
-                            animelink = latest["download_url"]
-                            newanimelink = animelink.replace('http', 'https')  # replace http with https
-                            output.append("**" + item + "**")
-                            output.append(torrentname + " [link]("+ newanimelink + ")")
-                        except:
-                            try:
-                                print("PAS")
-                                search = term + " PAS"
-                                pants = Nyaa.search(keyword=search, category=1, subcategory=2)
-                                latest = pants[0]
-                                torrentname = latest["name"]
-                                animelink = latest["download_url"]
-                                newanimelink = animelink.replace('http', 'https')  # replace http with https
+                            torrentName, torrentLink = await self.searchNyaa(term, searchTerm)
+                            if output:
+                                foundSwitch = True
                                 output.append("**" + item + "**")
-                                output.append(torrentname + " [link]("+ newanimelink + ")")
-                            except:
-                                print("issue: " +term)
-                                output.append("Something went wrong <:naneugg:564051785673867313>")
+                                output.append(torrentName + " [link]("+ torrentLink + ")")
+                                break
+                        except:
+                            pass
+                    if not foundSwitch:
+                        print("issue, couldn't find anime: " + term)
+                        output.append("Something went wrong <:naneugg:564051785673867313>")
 
+        totalEmbedsPages = len(output) / 9
+        
+        for x in range(totalEmbedsPages+1):
+            if x == 0:
+                embedField = 'Anime time <:naneggu:564053655775346699>'
+            else:
+                embedField = 'More Anime time <:naneggu:564053655775346699>'
+            sliceObject = output[x*9:(x+1)*9]
+            await self.animeEmbedOutput(ctx, sliceObject, embedField)
 
-        if len(output) >= 9:
-            output1 = output[:9]
-            output2 = output[9:]
-            mess1 = '\n'.join(output1) 
-            mess2 = '\n'.join(output2)
-            embed1 = discord.Embed()
-            embed2 = discord.Embed()
-            embed1.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess1, inline=False)
-            embed2.add_field(name='More anime time <:naneggu:564053655775346699>', value=mess2, inline=False)
-            await ctx.send(embed=embed1)
-            await ctx.send(embed=embed2)
-        else:
-            mess = '\n'.join(output)
-            embed = discord.Embed()
-            print(len(mess))
-            embed.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess, inline=False)
-            await ctx.send(embed=embed)
+    async def animeEmbedOutput(self, ctx, listSlice, title):
+        outputList = '\n'.join(listSlice)
+        embed = discord.Embed()
+        print(len(outputList))
+        embed.add_field(name=title, value=outputList, inline=False)
+        await ctx.send(embed=embed)
 
 
     async def getlist(self, ctx):
@@ -187,11 +179,8 @@ class animeCog(commands.Cog, name="anime"):
                 output.append('**[' + day + ']**')
                 for item in list_of_anime:
                     output.append(item)
-        mess = '\n'.join(output)
-        embedlist = discord.Embed()
-        embedlist.add_field(name='Heres a list <:naneggu:564053655775346699>', value=mess, inline=False)
-        await ctx.send(embed=embedlist)
 
+        await self.animeEmbedOutput(ctx, output, 'Heres a list <:naneggu:564053655775346699>')
 
 
     @commands.command()
