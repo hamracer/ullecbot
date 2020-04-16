@@ -36,13 +36,13 @@ class animeCog(commands.Cog, name="anime"):
         loadconfig()
         loadreplace()
 
-    def searchNyaa(self, animeName, term):
+    async def searchNyaa(self, animeName, term):
         search = " ".join([animeName, term])
         searchOutput = Nyaa.search(keyword=search, category=1, subcategory=2)
         latest = searchOutput[0]
         torrentName = latest["name"]
         animelink = latest["download_url"]
-        newAnimeLink = animelink.replace('http', 'https')  # replace http with https
+        newAnimeLink = animelink.replace('http://', 'https://')  # replace http with https
         return torrentName, newAnimeLink
     
     def loadreplace(self):
@@ -141,7 +141,7 @@ class animeCog(commands.Cog, name="anime"):
                         foundSwitch = False
                         print(searchTerm)
                         try:
-                            torrentName, torrentLink = self.searchNyaa(term, searchTerm)
+                            torrentName, torrentLink = await self.searchNyaa(term, searchTerm)
                             if output:
                                 foundSwitch = True
                                 output.append("**" + item + "**")
@@ -153,24 +153,22 @@ class animeCog(commands.Cog, name="anime"):
                         print("issue, couldn't find anime: " + term)
                         output.append("Something went wrong <:naneugg:564051785673867313>")
 
+        totalEmbedsPages = len(output) / 9
+        
+        for x in range(totalEmbedsPages+1):
+            sliceObject = output[x*9:(x+1)*9]
+            await self.animeEmbedOutput(ctx, sliceObject, x)
 
-        if len(output) >= 9:
-            output1 = output[:9]
-            output2 = output[9:]
-            mess1 = '\n'.join(output1) 
-            mess2 = '\n'.join(output2)
-            embed1 = discord.Embed()
-            embed2 = discord.Embed()
-            embed1.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess1, inline=False)
-            embed2.add_field(name='More anime time <:naneggu:564053655775346699>', value=mess2, inline=False)
-            await ctx.send(embed=embed1)
-            await ctx.send(embed=embed2)
+    async def animeEmbedOutput(self, ctx, listSlice, x):
+        outputList = '\n'.join(listSlice)
+        embed = discord.Embed()
+        print(len(outputList))
+        if x == 0:
+            embedField = 'Anime time <:naneggu:564053655775346699>'
         else:
-            mess = '\n'.join(output)
-            embed = discord.Embed()
-            print(len(mess))
-            embed.add_field(name='Anime time <:naneggu:564053655775346699>', value=mess, inline=False)
-            await ctx.send(embed=embed)
+            embedField = 'More Anime time <:naneggu:564053655775346699>'
+        embed.add_field(name=embedField, value=outputList, inline=False)
+        await ctx.send(embed=embed)
 
 
     async def getlist(self, ctx):
