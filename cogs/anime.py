@@ -33,8 +33,8 @@ class animeCog(commands.Cog, name="anime"):
             print('bulding anime shit')
             self.dict_of_anime = self.dict_builder()
 
-        loadconfig()
-        loadreplace()
+        self.loadconfig()
+        self.loadreplace()
 
     async def searchNyaa(self, animeName, term):
         search = " ".join([animeName, term])
