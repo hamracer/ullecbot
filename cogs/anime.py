@@ -153,7 +153,7 @@ class animeCog(commands.Cog, name="anime"):
                         print("issue, couldn't find anime: " + term)
                         output.append("Something went wrong <:naneugg:564051785673867313>")
 
-        totalEmbedsPages = len(output) / 9
+        totalEmbedsPages = len(output) // 9
         
         for x in range(totalEmbedsPages+1):
             if x == 0:
