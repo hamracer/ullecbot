@@ -43,7 +43,7 @@ class starchartCog(commands.Cog, name="starchart"):
                             emauthor = i.author
                             emdescription = i.description
                            
-                        emtwitter = "\n\n["+emauthor.name+"]"+"("+emauthor.url+")\n"+emdescription
+                        emtwitter = "\n\n["+emauthor.name+"]"+"("+emauthor.url+")\n"+str(emdescription)
                         if content.strip(): 
                             newcontent = newcontent + emtwitter
                             embed = discord.Embed(color=0x9062d3, description=newcontent)    
