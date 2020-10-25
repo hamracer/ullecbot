@@ -39,6 +39,7 @@ def loadtoken():
 
 
 if not loadtoken():
+    print("no token")
     exit()
 
 # loading cogs

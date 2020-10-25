@@ -8,12 +8,7 @@ c = conn.cursor
 
 #first time run
 
-try:
-    c.execute('''CREATE TABLE players
-                (id, name, hp, str, dex, int, con, wis, cha)''')
-                
-except Exception as e:
-            print('{} cannot be loaded. [{}]'.format(load, e))
+
 
 
 class gameCog(commands.Cog, name="game"):
@@ -21,9 +16,19 @@ class gameCog(commands.Cog, name="game"):
         self.bot = bot
 
 
+    @commands.command()
+    async def firsttimesetup(self):
+        try:
+            c.execute('''CREATE TABLE players
+                (id, name, hp, str, dex, int, con, wis, cha)''')
+            print('table created')
+        except:
+            pass
 
-     @commands.command()
+    @commands.command()
     async def gen(self, ctx):
+        user_id = ctx.user.id
+        print(user_id)
 
 
 
