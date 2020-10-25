@@ -23,12 +23,17 @@ class gameCog(commands.Cog, name="game"):
                 (id, name, hp, str, dex, int, con, wis, cha)''')
             print('table created')
         except:
+            print('table not created')
             pass
 
     @commands.command()
     async def gen(self, ctx):
-        user_id = ctx.user.id
+        user_id = ctx.author.id
+        created = ctx.author.created_at.strftime("%b %d, %Y")
+        joined = ctx.author.joined_at.strftime("%b %d, %Y")
         print(user_id)
+        print(created)
+        print(joined)
 
 
 
