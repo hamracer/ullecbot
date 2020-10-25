@@ -46,7 +46,7 @@ class snailCog(commands.Cog, name="snail"):
         
         elif reaction.emoji == "🐌" and reaction.message.guild.get_member(user.id).guild_permissions.manage_messages and user.id not in nolist:
             z = random.randint(1,100)
-            percentage_chance_for_mod = 33
+            percentage_chance_for_mod = 6
             if z < percentage_chance_for_mod:
                 x = random.randrange(0, 8)
                 for val in snailarmy[x:len(snailarmy)]:
@@ -54,7 +54,7 @@ class snailCog(commands.Cog, name="snail"):
 
         elif reaction.emoji == "🐌" and user.id not in nolist:
             z = random.randint(1,100)
-            percentage_chance = 6
+            percentage_chance = 3
             if z < percentage_chance:
                 x = random.randrange(0, 8)
                 for val in snailarmy[x:len(snailarmy)]:
