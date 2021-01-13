@@ -24,7 +24,7 @@ server_id = None
 class animeCog(commands.Cog, name="anime"):
     dict_of_anime = None
 
-    searchOptions = ["horriblesubs 720", "judas", "PAS"]
+    searchOptions = ["subsplease 720", "judas", "PAS"]
 
     def __init__(self, bot):
         self.bot = bot
@@ -179,7 +179,8 @@ class animeCog(commands.Cog, name="anime"):
                 output.append('**[' + day + ']**')
                 for item in list_of_anime:
                     output.append(item)
-
+                #if output sum(len(i) for i in output) > 1000:
+                
         await self.animeEmbedOutput(ctx, output, 'Heres a list <:naneggu:564053655775346699>')
 
 
