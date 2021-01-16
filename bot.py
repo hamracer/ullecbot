@@ -53,7 +53,7 @@ if __name__ == '__main__':
     async def on_command_error(ctx, error):
         if isinstance(error, MissingPermissions):
             await ctx.message.add_reaction(emoji='😏')
-            if random.randint(1,100) <= 30:
+            if random.randint(1,100) <= 6:
                 await ctx.send(spook[random.randint(0,6)])
             return
 

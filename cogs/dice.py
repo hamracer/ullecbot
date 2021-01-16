@@ -89,11 +89,11 @@ class diceCog(commands.Cog, name="dice"):
                     print('Exception: ' + str(e)) 
                     await ctx.message.add_reaction(emoji=':worst:579662420537114626')
 
-    @tasks.loop(minutes=2)
+    @tasks.loop(minutes=1)
     async def clear(self):
         global rolllist
         rolllist=[]
-        print("cleared rollist")
+        
 
 def setup(bot):
     bot.add_cog(diceCog(bot))
