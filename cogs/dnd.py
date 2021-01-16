@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import random
 
-approved_channel=[508225092530995220,610116940064882689]
+approved_channel=[508225092530995220,610116940064882689,262371002577715201]
 genlist=[]
 
 class dndCog(commands.Cog, name="dnd"):
@@ -65,7 +65,7 @@ class dndCog(commands.Cog, name="dnd"):
                 embed.insert_field_at(index=3, name=stats, value=statstring, inline=False)
                 await ctx.send(embed=embed)
             
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=2)
     async def clear(self):
         global genlist
         genlist=[]
