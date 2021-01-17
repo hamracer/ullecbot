@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import random
 
-approved_channel=[508225092530995220,610116940064882689,262371002577715201]
+approved_channel=[508225092530995220,610116940064882689,800256651152064571]
 genlist=[]
 
 class dndCog(commands.Cog, name="dnd"):
