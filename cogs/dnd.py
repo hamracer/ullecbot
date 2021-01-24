@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import random
 
-approved_channel=[508225092530995220,610116940064882689,800256651152064571]
+approved_channel=[]
 genlist=[]
 
 class dndCog(commands.Cog, name="dnd"):
@@ -49,7 +49,7 @@ class dndCog(commands.Cog, name="dnd"):
                 author = ctx.author.name
                 titlestring = author + " is rolling 🎲🎲🎲"
                 embed.insert_field_at(index=1, name=titlestring, value=foutput)
-                percentile = int(sum(total) / 108 * 100)
+                percentile = int(sum(total) / 96 * 100)
                 stats = "---------------------------------"
                 after = str(percentile)[-1]
                 if after == "1":
