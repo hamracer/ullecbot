@@ -49,6 +49,7 @@ class dndCog(commands.Cog, name="dnd"):
                 author = ctx.author.name
                 titlestring = author + " is rolling 🎲🎲🎲"
                 embed.insert_field_at(index=1, name=titlestring, value=foutput)
+                dicetotal = int(sum(total)
                 percentile = int(sum(total) / 96 * 100)
                 stats = "---------------------------------"
                 after = str(percentile)[-1]
@@ -61,7 +62,7 @@ class dndCog(commands.Cog, name="dnd"):
                 else:
                     end = "th"
                 
-                statstring = "This roll ranks at the " + str(percentile) + end +" percentile"
+                statstring = "Total: " + str(dicetotal) +"\n" + +"Percentile: " + str(percentile) + end
                 embed.insert_field_at(index=3, name=stats, value=statstring, inline=False)
                 await ctx.send(embed=embed)
             
