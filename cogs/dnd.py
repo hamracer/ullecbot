@@ -62,7 +62,7 @@ class dndCog(commands.Cog, name="dnd"):
                 else:
                     end = "th"
                 
-                statstring = "Total: " + str(dicetotal) +"\n" + +"Percentile: " + str(percentile) + end
+                statstring = "Total: " + str(dicetotal) +"\n" + "Percentile: " + str(percentile) + end
                 embed.insert_field_at(index=3, name=stats, value=statstring, inline=False)
                 await ctx.send(embed=embed)
             
