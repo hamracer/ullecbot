@@ -49,7 +49,7 @@ class dndCog(commands.Cog, name="dnd"):
                 author = ctx.author.name
                 titlestring = author + " is rolling 🎲🎲🎲"
                 embed.insert_field_at(index=1, name=titlestring, value=foutput)
-                dicetotal = int(sum(total)
+                dicetotal = int(sum(total))
                 percentile = int(sum(total) / 96 * 100)
                 stats = "---------------------------------"
                 after = str(percentile)[-1]
