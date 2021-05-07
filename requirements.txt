@@ -4,3 +4,4 @@ gspread
 oauth2client
 asyncpg
 pytz
+gspread
