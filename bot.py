@@ -9,9 +9,12 @@ import random
 # approval URL for bot
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
-bot = commands.Bot(command_prefix='.')  # bot command
+intents = discord.Intents.default()
+intents.members = True
+
+bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 #'snail', 'admin', 'help', 'starchart', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu'
-coglist = ['snail', 'help', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu']
+coglist = ['snail', 'help', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu','modabuse']
 bot.remove_command('help')
 spook = [   "This only makes me stronger.",
             "I’m /gbfg/'s reckoning.",

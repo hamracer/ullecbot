@@ -79,7 +79,6 @@ class diceCog(commands.Cog, name="dice"):
 
                     foutput = '\n'.join(output)
                     embed.insert_field_at(index=1, name=titlestring, value=foutput)
-                    print(str(resultnum) + " " + str(rolls) + " " + str(b))
                     totalstr = "Total: " + str(resultnum) + " Average: " + str(round(int(resultnum)/int(rolls),2)) + " Percentile: " + str(int(int(resultnum) * 100 / (int(rolls) * int(b))))
                     embed.insert_field_at(index=5, name=totalstr, value="\u200b", inline=False)
                     await ctx.send(embed=embed)
