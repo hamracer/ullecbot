@@ -33,10 +33,7 @@ class modabuseCog(commands.Cog, name="modabuse"):
     async def on_member_join(self, member):
         role = discord.utils.get(member.guild.roles, name="look at this retard")
         nopermslist = loadgspread()
-        print(nopermslist)
         for i in nopermslist:
-            print(i)
-            print(member.id)
             if member.id == int(i):
                 await member.add_roles(role)
 
