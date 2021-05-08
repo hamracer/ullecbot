@@ -19,6 +19,7 @@ def loadgspread():
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scopes)
         gc = gspread.authorize(creds)
 
+    sh = gc.open('botstuff')
     nopermslist = sh.sheet1.col_values(2)
     return nopermslist
 
