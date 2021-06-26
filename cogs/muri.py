@@ -22,7 +22,7 @@ class muriCog(commands.Cog, name="muri"):
             userid = int(userid)
             
 
-            await ctx.message.add_reaction(emoji=':muri:858267193816121345')
+            await ctx.message.add_reaction(emoji=':muri:590937344299761665')
             global user
             global msgr
             user = userid
@@ -39,7 +39,7 @@ class muriCog(commands.Cog, name="muri"):
         global msgr
         if payload.message_id == msgr:
             if payload.user_id == user:
-                if payload.emoji.id == 858267193816121345:
+                if payload.emoji.id == 590937344299761665:
                     channel = self.bot.get_channel(payload.channel_id)
                     user2 = channel.guild.get_member(user)
                     role = discord.utils.get(channel.guild.roles, name='muripals')
