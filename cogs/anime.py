@@ -166,9 +166,23 @@ class animeCog(commands.Cog, name="anime"):
     async def animeEmbedOutput(self, ctx, listSlice, title):
         outputList = '\n'.join(listSlice)
         embed = discord.Embed()
+        embed2 = discord.Embed()
         print(len(outputList))
-        embed.add_field(name=title, value=outputList, inline=False)
-        await ctx.send(embed=embed)
+        if (len(outputList)) > 1000:
+            splity = outputList.split("**[Saturday]**")
+            splity1 = splity[0]
+            splity2 = splity[1]
+            splity2 = "**[Saturday]**" + splity2
+            title1 = 'Heres part one <:naneggu:564053655775346699>' 
+            title2 = 'Heres part two <:naneggu:564053655775346699>' 
+            embed.add_field(name=title1, value=splity1, inline=False)
+            await ctx.send(embed=embed)
+            embed2.add_field(name=title2, value=splity2, inline=False)
+            await ctx.send(embed=embed2)
+
+        if (len(outputList)) < 1000:
+            embed.add_field(name=title, value=outputList, inline=False)
+            await ctx.send(embed=embed)
 
 
     async def getlist(self, ctx):
@@ -179,7 +193,6 @@ class animeCog(commands.Cog, name="anime"):
                 output.append('**[' + day + ']**')
                 for item in list_of_anime:
                     output.append(item)
-                #if output sum(len(i) for i in output) > 1000:
                 
         await self.animeEmbedOutput(ctx, output, 'Heres a list <:naneggu:564053655775346699>')
 
