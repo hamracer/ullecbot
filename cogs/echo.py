@@ -129,6 +129,7 @@ class echoCog(commands.Cog, name="echo"):
                 enders.append({"username":playername,"rolls":4})
                 #print(enders)
                 writetosheet(enders)
+                await ctx.reply("Look here everyone a new cummer!")
         #check if user has enough rolls to roll
         enders = readfromsheet()  
         match = next((item for item in enders if item['username'] == playername), 'Nothing Found')
@@ -185,7 +186,7 @@ class echoCog(commands.Cog, name="echo"):
                     await message.add_reaction(emoji=plusone) 
                     writetosheet(enders)
                     channel = self.bot.get_channel(902418660767965184)
-                    await channel.send(str(playername) + " rolled: " + str(textroll))
+                    await channel.send(playername + " rolled: " + str(textroll))
                 except:
                     print('no user')
 

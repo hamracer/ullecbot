@@ -13,7 +13,7 @@ intents = discord.Intents.default()
 intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
-#'snail', 'admin', 'help', 'starchart', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu'
+#coglist = ['dump','snail', 'help', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu','modabuse','muri']
 coglist = ['dump','snail', 'help', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu','modabuse','muri']
 bot.remove_command('help')
 spook = [   "This only makes me stronger.",
