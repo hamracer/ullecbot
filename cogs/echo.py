@@ -185,7 +185,7 @@ class echoCog(commands.Cog, name="echo"):
                     await message.add_reaction(emoji=plusone) 
                     writetosheet(enders)
                     channel = self.bot.get_channel(902418660767965184)
-                    await channel.send(playername + " rolled: " + textroll)
+                    await channel.send(str(playername) + " rolled: " + str(textroll))
                 except:
                     print('no user')
 
