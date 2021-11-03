@@ -4,12 +4,14 @@ import json, random
 import gspread
 import os
 from oauth2client.service_account import ServiceAccountCredentials
+from collections import Counter
 
 gbfgid = '339155308767215618'
 borpaspin = '<a:borpaspin:897668937926451210>'
 plusone = '<:plusone:899989682555854868>'
 loading = '<a:loading:902407104499974144>'
 tick = '<:tick:902416135683702794>'
+umproll = '<a:umproll:903953063746883614>'
 
 
 enders = []
@@ -146,6 +148,44 @@ class echoCog(commands.Cog, name="echo"):
             await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
+    async def cum10(self, ctx):
+        if str(ctx.channel.id) == '262371002577715201' or '562352225423458326':
+            await ctx.message.add_reaction(emoji=loading) 
+        
+            global enders
+            playername = ctx.author.name
+            if any(i['username'] == playername for i in enders):
+                print("player exists: " + str(playername))
+            else:
+                #print("player doesn't exists")
+                await ctx.reply("u got no cums loser")
+                return
+
+        #check if user has enough rolls to roll
+        enders = readfromsheet()  
+        match = next((item for item in enders if item['username'] == playername), 'Nothing Found')
+        if int(match['rolls']) >= 10:
+            match['rolls'] = int(match['rolls']) - 10
+            n = 10
+            totalrolls = []
+            while n > 0:
+                n -= 1 
+                roll = rolling()
+                totalrolls.append(roll)
+            print(totalrolls)
+            writetosheet(enders)
+            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls).items())))
+            await ctx.reply(umproll + umproll + umproll)
+            await ctx.send(sendies)
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
+        else: 
+            await ctx.reply("u dont got enough cums loser")
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
+
+
+    @commands.command()
     async def cumboard(self, ctx):
         if str(ctx.channel.id) == '262371002577715201' or '562352225423458326':
             enders.sort(key=lambda x:x['rolls'], reverse=True)
@@ -167,7 +207,7 @@ class echoCog(commands.Cog, name="echo"):
             except:
                 await ctx.reply("You're not on the cummies list, please cum once first.")
 
-    @tasks.loop(hours=1)
+    @tasks.loop(hours=2)
     async def cummies(self):
         enders = readfromsheet()
         for i in enders:
@@ -177,8 +217,8 @@ class echoCog(commands.Cog, name="echo"):
     @commands.Cog.listener()
     async def on_message(self, message):
         if str(message.channel.id) == '262371002577715201':
-            textroll = random.randint(1,1000)
-            if textroll  >= 970:
+            textroll = random.randint(1,2000)
+            if textroll  >= 1970:
                 playername = message.author.name
                 try:
                     match = next((item for item in enders if item['username'] == playername), 'Nothing Found')

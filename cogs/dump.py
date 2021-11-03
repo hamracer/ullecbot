@@ -1,5 +1,6 @@
 from discord.ext import commands
 import tweepy, json
+import os
 
 gbfgid = '339155308767215618'
 
@@ -24,9 +25,14 @@ class dumpCog(commands.Cog, name="dump"):
                 OAUTH_TOKEN_SECRET = data['OAUTH_TOKEN_SECRET']
 
             return True
-        except Exception as e:
-            print('Exception: ' + str(e))
-            return False
+        except:
+            
+            CONSUMER_KEY = os.environ.get('CONSUMER_KEY')
+            CONSUMER_SECRET = os.environ.get('CONSUMER_SECRET')
+            OAUTH_TOKEN = os.environ.get('OAUTH_TOKEN')
+            OAUTH_TOKEN_SECRET = os.environ.get('OAUTH_TOKEN_SECRET')
+
+            return True
 
     loadconfig()
     
