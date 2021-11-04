@@ -7,7 +7,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from collections import Counter
 
 gbfgid = '339155308767215618'
-borpaspin = '<a:borpaspin:897668937926451210>'
+borpaspin = '<a:borpaspin:905835451204640829>'
 plusone = '<:plusone:899989682555854868>'
 loading = '<a:loading:902407104499974144>'
 tick = '<:tick:902416135683702794>'
