@@ -40,7 +40,7 @@ def readfromsheet():
     global enders
     enders = []
     worksheet = gc.open('botstuff').get_worksheet(1)
-    username_spread = worksheet.col_values(2)
+    username_spread = worksheet.col_values(2)   
     rolls_spread  = worksheet.col_values(3)
     players = [list(a) for a in zip(username_spread, rolls_spread )]
     cats = ["username", "rolls"]
@@ -67,10 +67,10 @@ def writetosheet(enders):
             listy.append(o)
     x = 2
     newlisty = [listy[i:i+x] for i in range (0, len(listy), x)]
-    #print("listy: " + str(listy))
-    #print("newlisty:" + str(newlisty))
-    #print("end: "+ str(end))
-    worksheet = gc.open('botstuff').get_worksheet(1)
+    print("listy: " + str(listy))
+    print("newlisty:" + str(newlisty))
+    print("end: "+ str(end))
+    worksheet = gc.open('botstuff').get_worksheet(2)
     worksheet.update('B1:'+ end ,newlisty)
     #print("writetosheet - end")
     return
@@ -117,13 +117,13 @@ class echoCog(commands.Cog, name="echo"):
 
     @commands.command()
     async def cum(self, ctx):
-        if str(ctx.channel.id) == '262371002577715201' or '562352225423458326':
+        if str(ctx.channel.id) == '2623710025777152011' or '562352225423458326':
             await ctx.message.add_reaction(emoji=loading) 
             
             #print("CUMMMMMMMMMMMMMMMMMMMMMMM")
             global enders
             #print("enders: " + str(enders))
-            playername = ctx.author.name
+            playername = ctx.author.id
             if any(i['username'] == playername for i in enders):
                 print("player exists: " + str(playername))
             else:
@@ -149,7 +149,7 @@ class echoCog(commands.Cog, name="echo"):
 
     @commands.command()
     async def cum10(self, ctx):
-        if str(ctx.channel.id) == '262371002577715201' or '562352225423458326':
+        if str(ctx.channel.id) == '2623710025777152011' or '562352225423458326':
             await ctx.message.add_reaction(emoji=loading) 
         
             global enders
@@ -176,7 +176,7 @@ class echoCog(commands.Cog, name="echo"):
             writetosheet(enders)
             sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls).items())))
             await ctx.reply(umproll + umproll + umproll)
-            await ctx.send(sendies)
+            await ctx.reply(sendies)
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
             await ctx.message.add_reaction(emoji=tick) 
         else: 
@@ -187,19 +187,25 @@ class echoCog(commands.Cog, name="echo"):
 
     @commands.command()
     async def cumboard(self, ctx):
-        if str(ctx.channel.id) == '262371002577715201' or '562352225423458326':
+        if str(ctx.channel.id) == '2623710025777152011' or '562352225423458326':
             enders.sort(key=lambda x:x['rolls'], reverse=True)
             displaycumboard = [("%s with %s cums"%(item['username'], item['rolls'])) for item in enders[0:5]]
             sep = '\n'
             await ctx.send("Top 5 Cummers:\n" + sep.join(displaycumboard))
 
-                
+    @commands.command()
+    async def donatecum(self, ctx, arg1, arg2):
+        if str(ctx.channel.id) == '2623710025777152011' or '562352225423458326':
+            enders.sort(key=lambda x:x['rolls'], reverse=True)
+            displaycumboard = [("%s with %s cums"%(item['username'], item['rolls'])) for item in enders[0:5]]
+            sep = '\n'
+            await ctx.send("Top 5 Cummers:\n" + sep.join(displaycumboard))                
 
 
 
     @commands.command()
     async def howmanycumsdoihaveleft(self, ctx):
-        if str(ctx.channel.id) == '262371002577715201' or '562352225423458326':
+        if str(ctx.channel.id) == '2623710025777152011' or '562352225423458326':
             playername = ctx.author.name
             try:
                 match = next((item for item in enders if item['username'] == playername), 'Nothing Found') 
@@ -216,7 +222,7 @@ class echoCog(commands.Cog, name="echo"):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if str(message.channel.id) == '262371002577715201':
+        if str(message.channel.id) == '2623710025777152011':
             textroll = random.randint(1,2000)
             if textroll  >= 1970:
                 playername = message.author.name
