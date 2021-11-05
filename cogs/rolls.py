@@ -35,7 +35,7 @@ def rolling(test=False):
 async def dbget():
     global data
     db = await aiosqlite.connect('rolls.db')
-    cursor = await db.execute('SELECT users, rolls FROM rolltable')
+    cursor = await db.execute('SELECT user, rolls FROM rolltable')
     rows = await cursor.fetchall()
     data = [{'user': a,'rolls': b,} for a,b in rows]
     print("dbget - finished")
@@ -160,7 +160,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if str(message.channel.id) == '2623710025777152011':
+        if str(message.channel.id) == '262371002577715201':
             textroll = random.randint(1,2000)
             if textroll  >= 1970:
                 playerid = message.author.id
