@@ -2,8 +2,8 @@ discord.py
 NyaaPy
 gspread
 oauth2client
-asyncpg
 pytz
 gspread
 oauth2client
 tweepy
+aiosqlite
