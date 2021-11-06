@@ -212,7 +212,6 @@ class rollsCog(commands.Cog, name="rolls"):
                 if playersum > botsum:
                     embed.add_field(name='You win!!', value="You win "+ arg +" rolls", inline=False)
                     arg = int(arg) + int(arg)
-                    print(arg)
                     await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
                 if botsum == playersum:
                     embed.add_field(name='You draw!!', value="Your rolls have been returned", inline=False)
