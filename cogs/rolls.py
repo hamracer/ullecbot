@@ -12,8 +12,56 @@ plusone = '<:plusone:899989682555854868>'
 loading = '<a:loading:902407104499974144>'
 tick = '<:tick:902416135683702794>'
 umproll = '<a:umproll:903953063746883614>'
-
+channellist = [262371002577715201, 853625002779869204, 562352225423458326]
 data =[]
+
+mainch = True
+
+  
+
+class CustomCooldown:
+    def __init__(self, rate, per, alter_rate, alter_per, bucket, *, elements):
+
+        #def shared_cooldown(rate, per, type=commands.BucketType.default):
+        #    cooldown = commands.Cooldown(rate, per, type=type)
+        #    def decorator(func):
+        #        if isinstance(func, discord.ext.commands.Command):
+        #            func._buckets = commands.CooldownMapping(cooldown)
+        #        else:
+        #            func.__commands_cooldown__ = cooldown
+        #        return func
+        #    return decorator    
+
+        self.elements = elements
+        # Default mapping is the default cooldown
+        self.default_mapping = commands.CooldownMapping.from_cooldown(rate, per, bucket)
+        # Alter mapping is the alternative cooldown
+        self.alter_mapping = commands.CooldownMapping.from_cooldown(alter_rate, alter_per, bucket)
+        # Copy of the original BucketType
+        self._bucket_type = bucket
+
+    def __call__(self, ctx):
+        key = self.alter_mapping._bucket_key(ctx.message)
+
+        if self._bucket_type is commands.BucketType.member: # `BucketType.member` returns a tuple
+            key = key[1] # The second (last) value is the member ID, the first one is the guild ID
+
+        if key in self.elements:
+            # If the key is in the elements, the bucket will be taken from the alternative cooldown
+            bucket = self.alter_mapping.get_bucket(ctx.message)
+        else:
+            # If not, from the default cooldown
+            bucket = self.default_mapping.get_bucket(ctx.message)
+
+        # Getting the ratelimit left (can be None)
+        retry_after = bucket.update_rate_limit()
+
+        if retry_after: # If the command is on cooldown, raising the error
+            raise commands.CommandOnCooldown(bucket, retry_after)
+        return True
+
+    
+
 
 async def rolling(user):
     db = await aiosqlite.connect('rolls.db')
@@ -50,6 +98,7 @@ class rollsCog(commands.Cog, name="rolls"):
         self.bot = bot
         self.freecummies.start()
         
+    
     #DEBBUGGING STUFF
 
     @commands.command()
@@ -86,8 +135,9 @@ class rollsCog(commands.Cog, name="rolls"):
     #ROLLS
 
     @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cum(self, ctx):
-        if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
+        if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
             data = await dbget()
             playerid = ctx.author.id
@@ -118,10 +168,13 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                 await ctx.message.add_reaction(emoji=tick) 
                 
+    
+
 
     @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cum10(self, ctx):
-        if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
+        if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
             data = await dbget()
             playerid = ctx.author.id
@@ -157,8 +210,9 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def howmanycumsdoihaveleft(self, ctx):
-        if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
+        if ctx.channel.id in channellist:
             playerid = ctx.author.id
             data = await dbget()
             try:
@@ -175,8 +229,9 @@ class rollsCog(commands.Cog, name="rolls"):
     #GAMES
 
     @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def dice(self, ctx, arg):
-        if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
+        if ctx.channel.id in channellist:
             data = await dbget()
             #try:
             playerid = ctx.author.id
@@ -220,15 +275,16 @@ class rollsCog(commands.Cog, name="rolls"):
                 await sent.edit(embed=embed)
             else:
                 await ctx.reply("You dont have enough rolls for this.")
-        #except:
-        #    print("something went wrong")
+            #except:
+            #    print("something went wrong")
 
 
     #STATS
 
     @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumsavers(self, ctx):
-        if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
+        if ctx.channel.id in channellist:
             db = await aiosqlite.connect('rolls.db')
             cursor = await db.execute('SELECT alias, rolls FROM rolltable ORDER BY rolls DESC LIMIT 5')
             rows = await cursor.fetchall()
@@ -244,8 +300,9 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumstats(self, ctx):
-        if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
+        if ctx.channel.id in channellist:
             db = await aiosqlite.connect('rolls.db')
             playerid = ctx.author.id
             cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE user=?',[playerid])
@@ -285,12 +342,13 @@ class rollsCog(commands.Cog, name="rolls"):
                 except:
                     print('no user')
 
+    #LOOPS
+
     @tasks.loop(hours=2)
     async def freecummies(self):
         async with aiosqlite.connect('rolls.db') as db:
                 await db.execute("UPDATE rolltable SET rolls=rolls+1")
                 await db.commit()
-
 
     @commands.Cog.listener()
     async def on_ready(self):
