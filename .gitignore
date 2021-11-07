@@ -7,3 +7,4 @@ configs/token.json
 venv
 configs/blissful-land-240720-c3abbb49b748.json
 configs/twitter.json
+rolls.db

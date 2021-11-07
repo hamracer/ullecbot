@@ -253,58 +253,67 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def dice(self, ctx, arg):
         if ctx.channel.id in channellist:
-            data = await dbget()
-            await ctx.message.add_reaction(emoji=loading) 
-            #try:
-            playerid = ctx.author.id
-            playername = ctx.author.name
-            match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
-            if int(match['rolls']) >= int(arg):
-                #gamba
-                db = await aiosqlite.connect('rolls.db')
-                await db.execute("UPDATE rolltable SET rolls=rolls-? WHERE user=?",(arg,playerid))
-                await db.commit()
-                embed = discord.Embed(title="Roll the dice!",color=0x9062d3)
-                embed.add_field(name="Ullecbot", value="rolling...", inline=True)
-                embed.add_field(name=playername, value="rolling...", inline=True)
-                sent = await ctx.reply(embed=embed)
+            try:
+                data = await dbget()
+                await ctx.message.add_reaction(emoji=loading) 
+                #try:
+                playerid = ctx.author.id
+                playername = ctx.author.name
+                match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
+                if int(match['rolls']) >= int(arg):
+                    #gamba
+                    db = await aiosqlite.connect('rolls.db')
+                    await db.execute("UPDATE rolltable SET rolls=rolls-? WHERE user=?",(arg,playerid))
+                    await db.commit()
+                    embed = discord.Embed(title="Roll the dice!",color=0x9062d3)
+                    embed.add_field(name="Ullecbot", value="rolling...", inline=True)
+                    embed.add_field(name=playername, value="rolling...", inline=True)
+                    sent = await ctx.reply(embed=embed)
 
-                playerrolls=[]
-                botrolls=[]
-                for i in range(3):
-                    await asyncio.sleep(1)
-                    x = random.randint(1,6)
-                    y = random.randint(1,6)
-                    botrolls.append(x)
-                    playerrolls.append(y)
-                    displaybot = ', '.join(map(str,botrolls))
-                    displayplayer = ', '.join(map(str,playerrolls))
-                    embed.set_field_at(0, name="Ullecbot", value=displaybot, inline=True)
-                    embed.set_field_at(1, name=playername, value=displayplayer, inline=True)
+                    playerrolls=[]
+                    botrolls=[]
+                    for i in range(3):
+                        await asyncio.sleep(1)
+                        x = random.randint(1,6)
+                        y = random.randint(1,6)
+                        botrolls.append(x)
+                        playerrolls.append(y)
+                        displaybot = ', '.join(map(str,botrolls))
+                        displayplayer = ', '.join(map(str,playerrolls))
+                        embed.set_field_at(0, name="Ullecbot", value=displaybot, inline=True)
+                        embed.set_field_at(1, name=playername, value=displayplayer, inline=True)
+                        await sent.edit(embed=embed)
+                    botsum = sum(botrolls)
+                    playersum = sum(playerrolls)
+                    if botsum > playersum:
+                        resultstring = "You lose !! ( " + str(botsum) + " > " +str(playersum) + " )"
+                        embed.add_field(name=resultstring, value="You lost "+ arg +" rolls", inline=False)
+                    if playersum > botsum:
+                        resultstring = "You win!! ( " + str(botsum) + " < " +str(playersum) + " )"
+                        embed.add_field(name=resultstring, value="You win "+ arg +" rolls", inline=False)
+                        arg = int(arg) + int(arg)
+                        await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
+                    if botsum == playersum:
+                        resultstring = "You win!! ( " + str(botsum) + " = " +str(playersum) + " )"
+                        embed.add_field(name=resultstring, value="Your rolls have been returned", inline=False)
+                        await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
+                    await db.commit()
                     await sent.edit(embed=embed)
-                botsum = sum(botrolls)
-                playersum = sum(playerrolls)
-                if botsum > playersum:
-                    embed.add_field(name='You lose!!', value="You lost "+ arg +" rolls", inline=False)
-                if playersum > botsum:
-                    embed.add_field(name='You win!!', value="You win "+ arg +" rolls", inline=False)
-                    arg = int(arg) + int(arg)
-                    await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
-                if botsum == playersum:
-                    embed.add_field(name='You draw!!', value="Your rolls have been returned", inline=False)
-                    await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
-                await db.commit()
-                await sent.edit(embed=embed)
-                await asyncio.sleep(7)
-                await sent.delete()
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                await ctx.message.add_reaction(emoji=tick) 
-                
-            else:
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                await ctx.reply("You dont have enough rolls for this.")
-                await ctx.message.add_reaction(emoji=tick) 
-
+                    await asyncio.sleep(7)
+                    await sent.delete()
+                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.message.add_reaction(emoji=tick) 
+                    
+                else:
+                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.reply("You dont have enough rolls for this.")
+                    await ctx.message.add_reaction(emoji=tick) 
+            except:
+                    sent = await ctx.reply("You dont have enough rolls for this.")
+                    await asyncio.sleep(7)
+                    await sent.delete()
+                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.message.add_reaction(emoji=tick) 
             #except:
             #    print("something went wrong")
 
