@@ -1,3 +1,4 @@
+from time import sleep
 import discord
 from discord.ext import commands, tasks
 import json, random
@@ -13,7 +14,8 @@ loading = '<a:loading:902407104499974144>'
 tick = '<:tick:902416135683702794>'
 umproll = '<a:umproll:903953063746883614>'
 channellist = [262371002577715201, 853625002779869204, 562352225423458326]
-data =[]
+mainchannel = [9262371002577715201]
+data =[]  
 
 mainch = True
 
@@ -159,12 +161,16 @@ class rollsCog(commands.Cog, name="rolls"):
                     await db.execute("UPDATE rolltable SET rolls=rolls-1 WHERE user=?",[playerid])
                     await db.commit()
                     roll = await rolling(playerid)
-                    await ctx.reply(roll)
+                    sent = await ctx.reply(roll)
+                    await asyncio.sleep(7)
+                    await sent.delete()
                     await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                     await ctx.message.add_reaction(emoji=tick) 
                     
             else: 
-                await ctx.reply("u got no cums loser")
+                sent = await ctx.reply("u got no cums loser")
+                await asyncio.sleep(7)
+                await sent.delete()
                 await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                 await ctx.message.add_reaction(emoji=tick) 
                 
@@ -193,19 +199,25 @@ class rollsCog(commands.Cog, name="rolls"):
                 async with aiosqlite.connect('rolls.db') as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-10 WHERE user=?",[playerid])
                     await db.commit()
-                    n = 10
                     totalrolls = []
-                    while n > 0:
-                        n -= 1 
+                    embed = discord.Embed(title="Test your luck",color=0x9062d3)
+                    embed.add_field(name="Rolls...", value="rolling...")
+                    sent = await ctx.reply(embed=embed)
+                    for i in range(10):
+                        await asyncio.sleep(1)
                         roll = await rolling(playerid)
                         totalrolls.append(roll)
-                    sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls).items())))
-                    await ctx.reply(umproll + umproll + umproll)
-                    await ctx.reply(sendies)
+                        sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls).items())))
+                        embed.set_field_at(0, name="Rolls...", value=sendies, inline=True)
+                        await sent.edit(embed=embed)
+                    await asyncio.sleep(7)
+                    await sent.delete()
                     await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                     await ctx.message.add_reaction(emoji=tick) 
             else: 
-                await ctx.reply("u dont got enough cums loser")
+                sent = await ctx.reply("u dont got enough cums loser")
+                await asyncio.sleep(7)
+                await sent.delete()
                 await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                 await ctx.message.add_reaction(emoji=tick) 
 
@@ -213,13 +225,22 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def howmanycumsdoihaveleft(self, ctx):
         if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
             playerid = ctx.author.id
             data = await dbget()
             try:
                 match = next((item for item in data if item['user'] == playerid), 'Nothing Found') 
-                await ctx.reply("You have " + str(match['rolls']) + " cums left.")
+                sent = await ctx.reply("You have " + str(match['rolls']) + " cums left.")
+                await asyncio.sleep(7)
+                await sent.delete()
+                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                await ctx.message.add_reaction(emoji=tick) 
             except:
-                await ctx.reply("You're not on the cummies list, please cum once first.")
+                sent = await ctx.reply("You're not on the cummies list, please cum once first.")
+                await asyncio.sleep(7)
+                await sent.delete()
+                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                await ctx.message.add_reaction(emoji=tick) 
 
     
     #@commands.command()
@@ -233,6 +254,7 @@ class rollsCog(commands.Cog, name="rolls"):
     async def dice(self, ctx, arg):
         if ctx.channel.id in channellist:
             data = await dbget()
+            await ctx.message.add_reaction(emoji=loading) 
             #try:
             playerid = ctx.author.id
             playername = ctx.author.name
@@ -273,8 +295,16 @@ class rollsCog(commands.Cog, name="rolls"):
                     await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
                 await db.commit()
                 await sent.edit(embed=embed)
+                await asyncio.sleep(7)
+                await sent.delete()
+                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                await ctx.message.add_reaction(emoji=tick) 
+                
             else:
+                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                 await ctx.reply("You dont have enough rolls for this.")
+                await ctx.message.add_reaction(emoji=tick) 
+
             #except:
             #    print("something went wrong")
 
@@ -285,6 +315,7 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumsavers(self, ctx):
         if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
             db = await aiosqlite.connect('rolls.db')
             cursor = await db.execute('SELECT alias, rolls FROM rolltable ORDER BY rolls DESC LIMIT 5')
             rows = await cursor.fetchall()
@@ -296,13 +327,18 @@ class rollsCog(commands.Cog, name="rolls"):
             embed = discord.Embed(title="Top Cum Savers!",color=0x9062d3)
             top = self.bot.get_user(topid[0])
             embed.set_thumbnail(url=top.avatar_url)
-            embed.add_field(name="​", value=sep.join(display), inline=False)
+            sent = embed.add_field(name="​", value=sep.join(display), inline=False)
             await ctx.send(embed=embed)
+            await asyncio.sleep(7)
+            await sent.delete()
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
     @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumstats(self, ctx):
         if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
             db = await aiosqlite.connect('rolls.db')
             playerid = ctx.author.id
             cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE user=?',[playerid])
@@ -320,7 +356,11 @@ class rollsCog(commands.Cog, name="rolls"):
             embed = discord.Embed(title=titlestring,color=0x9062d3)
             embed.set_thumbnail(url=ctx.author.avatar_url)
             embed.add_field(name="​", value=final, inline=False)
-            await ctx.send(embed=embed)
+            sent = await ctx.send(embed=embed)
+            await asyncio.sleep(7)
+            await sent.delete()
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
     
     
     #LISTENERS 
