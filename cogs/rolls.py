@@ -265,7 +265,7 @@ class rollsCog(commands.Cog, name="rolls"):
                     db = await aiosqlite.connect('rolls.db')
                     await db.execute("UPDATE rolltable SET rolls=rolls-? WHERE user=?",(arg,playerid))
                     await db.commit()
-                    embed = discord.Embed(title="Roll the dice!",color=0x9062d3)
+                    embed = discord.Embed(title=umproll + " Roll the dice! " + umproll,color=0x9062d3)
                     embed.add_field(name="Ullecbot", value="rolling...", inline=True)
                     embed.add_field(name=playername, value="rolling...", inline=True)
                     sent = await ctx.reply(embed=embed)
@@ -288,15 +288,20 @@ class rollsCog(commands.Cog, name="rolls"):
                     if botsum > playersum:
                         resultstring = "You lose !! ( " + str(botsum) + " > " +str(playersum) + " )"
                         embed.add_field(name=resultstring, value="You lost "+ arg +" rolls", inline=False)
+                        winner = self.bot.get_user(562335932813017134)
+                        embed.set_thumbnail(url=winner.avatar_url)
                     if playersum > botsum:
                         resultstring = "You win!! ( " + str(botsum) + " < " +str(playersum) + " )"
                         embed.add_field(name=resultstring, value="You win "+ arg +" rolls", inline=False)
                         arg = int(arg) + int(arg)
                         await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
+                        winner = self.bot.get_user(ctx.author.id)
+                        embed.set_thumbnail(url=winner.avatar_url)
                     if botsum == playersum:
                         resultstring = "You win!! ( " + str(botsum) + " = " +str(playersum) + " )"
                         embed.add_field(name=resultstring, value="Your rolls have been returned", inline=False)
                         await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
+                        embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/906711134030155826/906885383642558464/611919839396757513.png')
                     await db.commit()
                     await sent.edit(embed=embed)
                     await asyncio.sleep(7)
