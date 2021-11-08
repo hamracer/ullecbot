@@ -243,11 +243,34 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.add_reaction(emoji=tick) 
 
     
-    #@commands.command()
-    #async def donate(self, ctx, arg1, arg2):
-    #    data = await dbget()
-
+    @commands.command()
+    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    async def donate(self, ctx, arg1):
+        if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
+            data = await dbget()
+            playerid = ctx.author.id
+            #match for if user has enough rolls
+            match = next((item for item in data if item['user'] == playerid), 'Nothing Found') 
+            if int(match['rolls']) >= int(arg1):
+                donateid = ctx.message.mentions[0].id
+                match2 = next((item for item in data if item['user'] == donateid), 'Nothing Found')
+                if int(match2['user']) == donateid:
+                    db = await aiosqlite.connect('rolls.db')
+                    await db.execute("UPDATE rolltable SET rolls=rolls-? WHERE user=?",(arg1,playerid))
+                    await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg1,donateid))
+                    await db.commit()
+                    sent = await ctx.reply("You have donated " + str(arg1) + " cum to " + self.bot.get_user(donateid).name)
+                    await asyncio.sleep(7)
+                    await sent.delete()
+                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.message.add_reaction(emoji=tick) 
+                else:
+                    print("something went wrong1")
+            else:
+                    print("something went wrong2")
     #GAMES
+    # 3d6
 
     @commands.command()
     @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
@@ -298,7 +321,7 @@ class rollsCog(commands.Cog, name="rolls"):
                         winner = self.bot.get_user(ctx.author.id)
                         embed.set_thumbnail(url=winner.avatar_url)
                     if botsum == playersum:
-                        resultstring = "You win!! ( " + str(botsum) + " = " +str(playersum) + " )"
+                        resultstring = "You draw!! ( " + str(botsum) + " = " +str(playersum) + " )"
                         embed.add_field(name=resultstring, value="Your rolls have been returned", inline=False)
                         await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
                         embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/906711134030155826/906885383642558464/611919839396757513.png')
@@ -323,6 +346,10 @@ class rollsCog(commands.Cog, name="rolls"):
             #    print("something went wrong")
 
 
+    # br?
+    
+
+
     #STATS
 
     @commands.command()
@@ -343,6 +370,7 @@ class rollsCog(commands.Cog, name="rolls"):
             embed.set_thumbnail(url=top.avatar_url)
             sent = embed.add_field(name="​", value=sep.join(display), inline=False)
             await ctx.send(embed=embed)
+            await db.commit()
             await asyncio.sleep(7)
             await sent.delete()
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
@@ -350,15 +378,21 @@ class rollsCog(commands.Cog, name="rolls"):
 
     @commands.command()
     @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
-    async def cumstats(self, ctx):
-        if ctx.channel.id in channellist:
+    async def cumstats(self, ctx, arg = 'poop'): 
+        if ctx.channel.id in channellist: 
+            if arg.isnumeric(): 
+                playerid = int(arg) 
+            elif ctx.message.mentions:
+                playerid = ctx.message.mentions[0].id 
+            else:
+                playerid = ctx.author.id
             await ctx.message.add_reaction(emoji=loading) 
-            db = await aiosqlite.connect('rolls.db')
-            playerid = ctx.author.id
+            db = await aiosqlite.connect('rolls.db') 
             cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE user=?',[playerid])
             stats = await cursor.fetchall()
+            await db.commit()
             stats = [{'rolls saved': b, 'total rolls': c, 'cums': d, 'borpaspins': e, 'goldborpaspins': f,} for b,c,d,e,f in stats]
-            listedstats =[]
+            listedstats =[] 
             for i,o in stats[0].items():
                 line = i + ': ' + str(o)
                 listedstats.append(line)
@@ -366,9 +400,10 @@ class rollsCog(commands.Cog, name="rolls"):
 
             sep = '\n'
             final = sep.join(listedstats)
-            titlestring = ctx.author.name + "'s stats"
+            member = self.bot.get_user(playerid)
+            titlestring = member.name + "'s stats"
             embed = discord.Embed(title=titlestring,color=0x9062d3)
-            embed.set_thumbnail(url=ctx.author.avatar_url)
+            embed.set_thumbnail(url=member.avatar_url)
             embed.add_field(name="​", value=final, inline=False)
             sent = await ctx.send(embed=embed)
             await asyncio.sleep(7)
