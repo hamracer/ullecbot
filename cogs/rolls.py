@@ -137,7 +137,7 @@ class rollsCog(commands.Cog, name="rolls"):
     #ROLLS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cum(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -178,7 +178,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cum10(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -222,7 +222,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def howmanycumsdoihaveleft(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -244,7 +244,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
     
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def donate(self, ctx, arg1):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -273,7 +273,7 @@ class rollsCog(commands.Cog, name="rolls"):
     # 3d6
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def dice(self, ctx, arg):
         if ctx.channel.id in channellist:
             try:
@@ -353,7 +353,7 @@ class rollsCog(commands.Cog, name="rolls"):
     #STATS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumsavers(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -377,7 +377,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def biggestcummers(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -401,7 +401,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.message.add_reaction(emoji=tick) 
     
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def borpacheck(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -425,7 +425,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def goldcheck(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -449,7 +449,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumstats(self, ctx, arg = 'poop'): 
         if ctx.channel.id in channellist: 
             if arg.isnumeric(): 
