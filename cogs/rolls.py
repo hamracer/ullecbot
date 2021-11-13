@@ -137,7 +137,7 @@ class rollsCog(commands.Cog, name="rolls"):
     #ROLLS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cum(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -178,7 +178,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cum10(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -222,7 +222,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def howmanycumsdoihaveleft(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -244,7 +244,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
     
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def donate(self, ctx, arg1):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -273,7 +273,7 @@ class rollsCog(commands.Cog, name="rolls"):
     # 3d6
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def dice(self, ctx, arg):
         if ctx.channel.id in channellist:
             try:
@@ -353,7 +353,7 @@ class rollsCog(commands.Cog, name="rolls"):
     #STATS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumsavers(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -368,8 +368,8 @@ class rollsCog(commands.Cog, name="rolls"):
             embed = discord.Embed(title="Top Cum Savers!",color=0x9062d3)
             top = self.bot.get_user(topid[0])
             embed.set_thumbnail(url=top.avatar_url)
-            sent = embed.add_field(name="​", value=sep.join(display), inline=False)
-            await ctx.send(embed=embed)
+            embed.add_field(name="​", value=sep.join(display), inline=False)
+            sent = await ctx.send(embed=embed)
             await db.commit()
             await asyncio.sleep(7)
             await sent.delete()
@@ -377,7 +377,79 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 60, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    async def biggestcummers(self, ctx):
+        if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
+            db = await aiosqlite.connect('rolls.db')
+            cursor = await db.execute('SELECT alias, cums FROM rolltable ORDER BY cums DESC LIMIT 5')
+            rows = await cursor.fetchall()
+            ctopid = await db.execute("SELECT user FROM rolltable ORDER BY cums DESC LIMIT 1")
+            topid = await ctopid.fetchone()
+            top5 = [{'user': a,'cums': b,} for a,b in rows]
+            display = [("%s: %s cums spilled"%(item['user'],item['cums'])) for item in top5]
+            sep = '\n'
+            embed = discord.Embed(title="Top Cummers!",color=0x9062d3)
+            top = self.bot.get_user(topid[0])
+            embed.set_thumbnail(url=top.avatar_url)
+            embed.add_field(name="​", value=sep.join(display), inline=False)
+            sent = await ctx.send(embed=embed)
+            await db.commit()
+            await asyncio.sleep(7)
+            await sent.delete()
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
+    
+    @commands.command()
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    async def borpacheck(self, ctx):
+        if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
+            db = await aiosqlite.connect('rolls.db')
+            cursor = await db.execute('SELECT alias, borpas FROM rolltable ORDER BY borpas DESC LIMIT 5')
+            rows = await cursor.fetchall()
+            ctopid = await db.execute("SELECT user FROM rolltable ORDER BY borpas DESC LIMIT 1")
+            topid = await ctopid.fetchone()
+            top5 = [{'user': a,'borpas': b,} for a,b in rows]
+            display = [("%s: %s borpas spun"%(item['user'],item['borpas'])) for item in top5]
+            sep = '\n'
+            embed = discord.Embed(title="Top Borpaspinners!",color=0x9062d3)
+            top = self.bot.get_user(topid[0])
+            embed.set_thumbnail(url=top.avatar_url)
+            embed.add_field(name="​", value=sep.join(display), inline=False)
+            sent = await ctx.send(embed=embed)
+            await db.commit()
+            await asyncio.sleep(7)
+            await sent.delete()
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
+
+    @commands.command()
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    async def goldcheck(self, ctx):
+        if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(emoji=loading) 
+            db = await aiosqlite.connect('rolls.db')
+            cursor = await db.execute('SELECT alias, goldborpaspins FROM rolltable ORDER BY goldborpaspins DESC LIMIT 5')
+            rows = await cursor.fetchall()
+            ctopid = await db.execute("SELECT user FROM rolltable ORDER BY goldborpaspins DESC LIMIT 1")
+            topid = await ctopid.fetchone()
+            top5 = [{'user': a,'goldborpaspins': b,} for a,b in rows]
+            display = [("%s: %s gold borpas spun"%(item['user'],item['goldborpaspins'])) for item in top5]
+            sep = '\n'
+            embed = discord.Embed(title="Top Gold Borpa Spinners!",color=0x9062d3)
+            top = self.bot.get_user(topid[0])
+            embed.set_thumbnail(url=top.avatar_url)
+            embed.add_field(name="​", value=sep.join(display), inline=False)
+            sent = await ctx.send(embed=embed)
+            await db.commit()
+            await asyncio.sleep(7)
+            await sent.delete()
+            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+            await ctx.message.add_reaction(emoji=tick) 
+
+    @commands.command()
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
     async def cumstats(self, ctx, arg = 'poop'): 
         if ctx.channel.id in channellist: 
             if arg.isnumeric(): 
