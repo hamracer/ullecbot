@@ -1,10 +1,12 @@
 import discord
 from discord.ext import commands, tasks
 import random
+import asyncio
 
 channellist = [508905628652142592, 339235017760833536, 508225092530995220, 339155308767215618, 339879301639962656]
 rolllist = []
-
+loading = '<a:loading:902407104499974144>'
+tick = '<:tick:902416135683702794>'
 
 class diceCog(commands.Cog, name="dice"):
     def __init__(self, bot):
@@ -34,6 +36,7 @@ class diceCog(commands.Cog, name="dice"):
                 output = []
                 author = ctx.author.name
                 titlestring = author + " just rolled the dice 🎲 \n"
+                await ctx.message.add_reaction(emoji=loading) 
                 embed = discord.Embed(color=0x9062d3)
                 embed.set_author(name="ullec bot")
                 embed.set_thumbnail(url=ctx.author.avatar_url)
@@ -81,8 +84,13 @@ class diceCog(commands.Cog, name="dice"):
                     embed.insert_field_at(index=1, name=titlestring, value=foutput)
                     totalstr = "Total: " + str(resultnum) + " Average: " + str(round(int(resultnum)/int(rolls),2)) + " Percentile: " + str(int(int(resultnum) * 100 / (int(rolls) * int(b))))
                     embed.insert_field_at(index=5, name=totalstr, value="\u200b", inline=False)
-                    await ctx.send(embed=embed)
                     rolllist.append(ctx.author.id)
+                    sent = await ctx.send(embed=embed)
+                    await asyncio.sleep(7)
+                    await sent.delete()
+                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.message.add_reaction(emoji=tick) 
+
                     
                 except Exception as e:
                     print('Exception: ' + str(e)) 
