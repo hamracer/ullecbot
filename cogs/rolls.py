@@ -73,18 +73,21 @@ async def rolling(user):
         await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user])
         await db.execute("UPDATE rolltable SET goldborpaspins=goldborpaspins+1 WHERE user=?",[user])
         await db.commit()
+        await db.close()
         return roll
     if theroll >= 188:
         roll = borpaspin
         await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user])
         await db.execute("UPDATE rolltable SET borpas=borpas+1 WHERE user=?",[user])
         await db.commit()
+        await db.close()
         return roll
     else:
         roll = "cum"
         await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user])
         await db.execute("UPDATE rolltable SET cums=cums+1 WHERE user=?",[user])
         await db.commit()
+        await db.close()
         return roll
     
 async def dbget():
@@ -265,6 +268,7 @@ class rollsCog(commands.Cog, name="rolls"):
                     await sent.delete()
                     await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                     await ctx.message.add_reaction(emoji=tick) 
+                    await db.close()
                 else:
                     print("something went wrong1")
             else:
@@ -331,17 +335,20 @@ class rollsCog(commands.Cog, name="rolls"):
                     await sent.delete()
                     await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                     await ctx.message.add_reaction(emoji=tick) 
+                    await db.close()
                     
                 else:
                     await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                     await ctx.reply("You dont have enough rolls for this.")
                     await ctx.message.add_reaction(emoji=tick) 
+                    
             except:
                     sent = await ctx.reply("You dont have enough rolls for this.")
                     await asyncio.sleep(7)
                     await sent.delete()
                     await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
                     await ctx.message.add_reaction(emoji=tick) 
+                    
             #except:
             #    print("something went wrong")
 
@@ -375,6 +382,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await sent.delete()
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
             await ctx.message.add_reaction(emoji=tick) 
+            await db.close()
 
     @commands.command()
     @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
@@ -399,6 +407,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await sent.delete()
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
             await ctx.message.add_reaction(emoji=tick) 
+            await db.close()
     
     @commands.command()
     @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
@@ -423,6 +432,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await sent.delete()
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
             await ctx.message.add_reaction(emoji=tick) 
+            await db.close()
 
     @commands.command()
     @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
@@ -447,6 +457,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await sent.delete()
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
             await ctx.message.add_reaction(emoji=tick) 
+            await db.close()
 
     @commands.command()
     @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
@@ -482,6 +493,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await sent.delete()
             await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
             await ctx.message.add_reaction(emoji=tick) 
+            await db.close()
     
     
     #LISTENERS 
