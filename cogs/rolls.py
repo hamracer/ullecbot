@@ -5,6 +5,11 @@ import json, random
 import asyncio
 import aiosqlite
 from collections import Counter
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import pandas as pd
+import io
+from io import BytesIO
 
 gbfgid = '339155308767215618'
 borpaspin = '<a:borpaspin:905835451204640829>'
@@ -140,7 +145,7 @@ class rollsCog(commands.Cog, name="rolls"):
     #ROLLS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def cum(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -181,7 +186,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def cum10(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -225,7 +230,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.add_reaction(emoji=tick) 
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def howmanycumsdoihaveleft(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -247,7 +252,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
     
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def donate(self, ctx, arg1):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -277,7 +282,7 @@ class rollsCog(commands.Cog, name="rolls"):
     # 3d6
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def dice(self, ctx, arg):
         if ctx.channel.id in channellist:
             try:
@@ -360,7 +365,7 @@ class rollsCog(commands.Cog, name="rolls"):
     #STATS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def cumsavers(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -385,7 +390,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await db.close()
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def biggestcummers(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -410,7 +415,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await db.close()
     
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def borpacheck(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -435,7 +440,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await db.close()
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def goldcheck(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(emoji=loading) 
@@ -460,7 +465,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await db.close()
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204]))
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def cumstats(self, ctx, arg = 'poop'): 
         if ctx.channel.id in channellist: 
             if arg.isnumeric(): 
@@ -495,7 +500,36 @@ class rollsCog(commands.Cog, name="rolls"):
             await ctx.message.add_reaction(emoji=tick) 
             await db.close()
     
-    
+    @commands.command()
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
+    async def pt(self, ctx): 
+        if ctx.channel.id in channellist: 
+            db = await aiosqlite.connect('rolls.db')
+            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable')
+            stats = await cursor.fetchall()
+            await db.close()
+            stats = [{'name': a, 'rolls': b, 'total rolls': c, 'cums': d, 'total borpas': e+f, 'percent': round((e+f)/c*100, 2)} for a,b,c,d,e,f in stats]
+            adder = {'name': 'Likely Rate', 'rolls': '0','total rolls': 100, 'cums': 96, 'total borpas': 6, 'percent': 6}
+            stats.append(adder)
+            newlist = sorted(stats, key=lambda d: d['percent'])
+            df = pd.DataFrame(newlist)
+            fig, ax = plt.subplots()
+            plt.style.use('ggplot')
+            clrs = ['r' if (x == 6) else 'c' for x in df['percent']]
+            plt.barh(df['name'], df['percent'], color=clrs)
+            fmt = '%.0f%%' # Format you want the ticks, e.g. '40%'
+            xticks = mtick.FormatStrFormatter(fmt)
+            ax.xaxis.set_major_formatter(xticks)
+
+            plt.title('Borpa rates')
+            plt.ylabel('Users')
+            plt.xlabel('Rates')
+
+            with io.BytesIO() as image_binary:
+                plt.savefig(image_binary)
+                image_binary.seek(0)
+                await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
+
     #LISTENERS 
 
     @commands.Cog.listener()
