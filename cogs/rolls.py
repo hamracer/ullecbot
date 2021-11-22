@@ -530,6 +530,41 @@ class rollsCog(commands.Cog, name="rolls"):
                 image_binary.seek(0)
                 await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
 
+    @commands.command()
+    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
+    async def pt2(self, ctx): 
+        if ctx.channel.id in channellist: 
+            db = await aiosqlite.connect('rolls.db')
+            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable')
+            stats = await cursor.fetchall()
+            await db.close()
+            stats = [{'name': a, 'rolls': b, 'total rolls': c, 'cums': d, 'total borpas': e+f, 'percent': round((e+f)/c*100, 2)} for a,b,c,d,e,f in stats]
+            newlist = sorted(stats, key=lambda d: d['percent'])
+            df = pd.DataFrame(newlist)
+            fig, ax = plt.subplots()
+            plt.style.use('ggplot')
+            clrs = ['c']
+            ax.axhline(y=6,color='r',linestyle='-')
+            ax.scatter(df['total rolls'], df['percent'], color=clrs)
+            fmt = '%.0f%%' # Format you want the ticks, e.g. '40%'
+            xticks = mtick.FormatStrFormatter(fmt)
+            ax.yaxis.set_major_formatter(xticks)
+            names = df['name'].tolist()
+            xas = df['total rolls'].tolist()
+            yas = df['percent'].tolist()
+
+            for i, txt in enumerate(names):
+                ax.annotate(txt, (xas[i], yas[i]))
+            
+            plt.title('Rates vs Total Rolls')
+            plt.ylabel('Borpa Rates')
+            plt.xlabel('Totall Rolls')
+
+            with io.BytesIO() as image_binary:
+                plt.savefig(image_binary)
+                image_binary.seek(0)
+                await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
+
     #LISTENERS 
 
     @commands.Cog.listener()
