@@ -6,7 +6,7 @@ pytz
 gspread
 oauth2client
 tweepy
-matplotlib
+aiosqlite
 numpy
 pandas
-aiosqlite
+matplotlib
