@@ -505,7 +505,7 @@ class rollsCog(commands.Cog, name="rolls"):
     async def pt(self, ctx): 
         if ctx.channel.id in channellist: 
             db = await aiosqlite.connect('rolls.db')
-            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable')
+            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE totalrolls>9')
             stats = await cursor.fetchall()
             await db.close()
             stats = [{'name': a, 'rolls': b, 'total rolls': c, 'cums': d, 'total borpas': e+f, 'percent': round((e+f)/c*100, 2)} for a,b,c,d,e,f in stats]
@@ -535,7 +535,7 @@ class rollsCog(commands.Cog, name="rolls"):
     async def pt2(self, ctx): 
         if ctx.channel.id in channellist: 
             db = await aiosqlite.connect('rolls.db')
-            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable')
+            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE totalrolls>9')
             stats = await cursor.fetchall()
             await db.close()
             stats = [{'name': a, 'rolls': b, 'total rolls': c, 'cums': d, 'total borpas': e+f, 'percent': round((e+f)/c*100, 2)} for a,b,c,d,e,f in stats]
