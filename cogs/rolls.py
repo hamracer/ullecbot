@@ -101,6 +101,7 @@ async def dbget():
     rows = await cursor.fetchall()
     data = [{'user': a,'rolls': b,} for a,b in rows]
     #print("dbget - finished")
+    await db.close()
     return data
 
 class rollsCog(commands.Cog, name="rolls"):
