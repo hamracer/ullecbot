@@ -42,6 +42,6 @@ class uwuCog(commands.Cog, name="uwu"):
 
 
     
-def setup(bot):
-    bot.add_cog(uwuCog(bot))
+async def setup(bot):
+    await bot.add_cog(uwuCog(bot))
     print('uwu cog loaded')

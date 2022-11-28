@@ -49,6 +49,6 @@ class fxCog(commands.Cog, name="fx"):
 
 
     
-def setup(bot):
-    bot.add_cog(fxCog(bot))
+async def setup(bot):
+    await bot.add_cog(fxCog(bot))
     print('fx cog loaded')
