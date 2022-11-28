@@ -9,7 +9,7 @@ import random
 # approval URL for bot
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
@@ -46,10 +46,11 @@ if not loadtoken():
     exit()
 
 # loading cogs
-if __name__ == '__main__':
+#if __name__ == '__main__':
+async def load_extensions():
     for load in coglist:
         try:   
-            bot.load_extension('cogs.'+(load))
+            await bot.load_extension('cogs.'+(load))
         except Exception as e:
             print('{} cannot be loaded. [{}]'.format(load, e))
 
