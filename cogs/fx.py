@@ -3,7 +3,8 @@ from discord.ext import commands
 import json
 import asyncio
 
-channel_id=[1031516168365801482,339155308767215618],262371002577715201
+#channel_id=[1031516168365801482]
+channel_id=[1031516168365801482,339155308767215618,262371002577715201]
 calc_id=1046770057876869171
 
 class fxCog(commands.Cog, name="fx"):
@@ -14,34 +15,40 @@ class fxCog(commands.Cog, name="fx"):
     async def on_message(self, message):
         if message.channel.id in channel_id:
             if "//twitter.com" in message.content:
-                print('detected twitter message')
+                #print('detected twitter message')
+                await asyncio.sleep(2)
                 try:
+                    print('test to see if link does not have a video')
                     if not message.embeds[0].video:
-                        print('message has no video')
+                        #print('original has no video')
                         index = message.content.find('twitter')
                         newlink = message.content[:index] + 'vx' + message.content[index:]
                         testchannel = self.bot.get_channel(calc_id)
                         testlink = await testchannel.send(newlink)
-                        #await asyncio.sleep(2)
-                        try: 
+                        try:
                             if testlink.embeds[0].video:
-                                print('vx has embed video')
-                                sant = str(message.author) + " sent " + newlink
+                                sant = str(message.author) + " - " + newlink
                                 output = await message.channel.send(sant)
-                                print('posted new link')
+                                await output.edit(content=(message.author.mention) + " - " + newlink)
                                 await message.delete()
-                                print('deleted old link')
-                            else:
-                                print('vx has no embed video')
-                                return
+                                await testlink.delete()
                         except:
-                            print('vx has no embed video')
+                            #print('testlink has no video')
+                            #print('nothing to be done')
                             return
-                    else:
-                        print('message has a video')
-                        return
+
+                    if message.embeds[0].video:
+                        #print('original has a video')
+                        index = message.content.find('twitter') #find twitter in string
+                        newlink = message.content[:index] + 'vx' + message.content[index:] #add vx to string
+                        sant = str(message.author) + " - " + newlink #create new string to post with new vxtwitter link
+                        output = await message.channel.send(sant) #send link to channel
+                        await output.edit(content=(message.author.mention) + " - " + newlink) #edit link with mention
+                        await message.delete()
+                        
+                        
                 except:
-                    print('message has embed video')
+                    #print('something went wrong')
                     return
                     
 
