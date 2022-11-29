@@ -1,12 +1,4 @@
 discord.py
-NyaaPy
-gspread
-oauth2client
+NyaaPy==0.6.1
 pytz
-gspread
-oauth2client
-tweepy
-aiosqlite
-numpy
-pandas
-matplotlib
+
