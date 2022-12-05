@@ -24,7 +24,7 @@ class fxCog(commands.Cog, name="fx"):
                 
                 print('|||----LOOK FOR SUCCESS----|||')
                 try:
-                    if testlink1.embeds:
+                    if testlink1.embeds[0].video:
                         print('testlink1 = success')
                         print('|||----LOOK FOR SUCCESS----|||')
                         testlink2 = testlink1
@@ -33,11 +33,11 @@ class fxCog(commands.Cog, name="fx"):
                         print('first one failed')
                         print('trying again')
                         testlink2 = await testchannel.send(newlink) #send to the test channel
-                        if testlink2.embeds:
+                        if testlink2.embeds[0].video:
                             print('testlink2 = success')
                             print('|||----LOOK FOR SUCCESS----|||')
                 except:
-                    print('might not have an embed')
+                    print('might not have video')
                 try:
                     if testlink2.embeds[0].video: #if the link has a video
                         print('video does exist')
@@ -45,6 +45,8 @@ class fxCog(commands.Cog, name="fx"):
                         output = await message.channel.send(sant) #send link to channel
                         await output.edit(content=(message.author.mention) + " - " + newlink)
                         await message.delete() #delete first message
+                        print('video posted')
+                        
                         return
 
                     else:
