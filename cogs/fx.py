@@ -20,9 +20,10 @@ class fxCog(commands.Cog, name="fx"):
                 newlink = message.content[:index] + 'vx' + message.content[index:] #generate vx link
                 testchannel = self.bot.get_channel(calc_id) 
                 testlink = await testchannel.send(newlink) #send to the test channel 
-                await asyncio.sleep(5)
+                await asyncio.sleep(2)
                 try:
                     print('test to see if video exists')
+                    print(testlink.embeds[0])
                     if testlink.embeds[0].video: #if the link has a video
                         print('video does exist')
                         sant = str(message.author) + " - " + newlink
@@ -33,8 +34,9 @@ class fxCog(commands.Cog, name="fx"):
 
                     else:
                         print('video does not exist')
-                except:
-                    print('something went wrong')
+                except Exception as e:
+                    print('Exception: ' + str(e)) 
+                    
     
 async def setup(bot):
     await bot.add_cog(fxCog(bot))
