@@ -19,14 +19,27 @@ class fxCog(commands.Cog, name="fx"):
                 index = message.content.find('twitter')
                 newlink = message.content[:index] + 'vx' + message.content[index:] #generate vx link
                 testchannel = self.bot.get_channel(calc_id) 
-                testlink = await testchannel.send(newlink) #send to the test channel 
+                testlink1 = await testchannel.send(newlink) #send to the test channel 
                 await asyncio.sleep(2)
-                print('testing the link')
-                print(testlink.content) #shit breaks if this isnt here wtf?
+                
+                print('|||----LOOK FOR SUCCESS----|||')
                 try:
-                    print('test to see if video exists')
-                    print(testlink.embeds[0])
-                    if testlink.embeds[0].video: #if the link has a video
+                    if testlink1.embeds:
+                        print('testlink1 = success')
+                        print('|||----LOOK FOR SUCCESS----|||')
+                        testlink2 = testlink1
+                    
+                    else:
+                        print('first one failed')
+                        print('trying again')
+                        testlink2 = await testchannel.send(newlink) #send to the test channel
+                        if testlink2.embeds:
+                            print('testlink2 = success')
+                            print('|||----LOOK FOR SUCCESS----|||')
+                except:
+                    print('might not have an embed')
+                try:
+                    if testlink2.embeds[0].video: #if the link has a video
                         print('video does exist')
                         sant = str(message.author) + " - " + newlink
                         output = await message.channel.send(sant) #send link to channel
