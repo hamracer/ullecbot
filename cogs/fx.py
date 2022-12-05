@@ -21,6 +21,8 @@ class fxCog(commands.Cog, name="fx"):
                 testchannel = self.bot.get_channel(calc_id) 
                 testlink = await testchannel.send(newlink) #send to the test channel 
                 await asyncio.sleep(2)
+                print('testing the link')
+                print(testlink.content) #shit breaks if this isnt here wtf?
                 try:
                     print('test to see if video exists')
                     print(testlink.embeds[0])
@@ -36,6 +38,7 @@ class fxCog(commands.Cog, name="fx"):
                         print('video does not exist')
                 except Exception as e:
                     print('Exception: ' + str(e)) 
+
                     
     
 async def setup(bot):
