@@ -13,53 +13,17 @@ class fxCog(commands.Cog, name="fx"):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.channel.id in channel_id:
-            if "//twitter.com" in message.content:
+        if message.channel.id in channel_id and "//twitter.com" in message.content:
+            split = message.content.strip().split('/')
+            # check if proper link
+            if split[0] in ['http:', 'https:'] and split[1] == '' and split[2] == 'twitter.com' and ' ' not in split[3] and split[4] == 'status' and ' ' not in split[5]:
                 print('detected twitter message') 
-                index = message.content.find('twitter')
-                newlink = message.content[:index] + 'vx' + message.content[index:] #generate vx link
-                testchannel = self.bot.get_channel(calc_id) 
-                testlink1 = await testchannel.send(newlink) #send to the test channel 
-                await asyncio.sleep(2)
-                
-                print('|||----LOOK FOR SUCCESS----|||')
-                try:
-                    if testlink1.embeds[0].video:
-                        print('testlink1 = success')
-                        print('|||----LOOK FOR SUCCESS----|||')
-                        testlink2 = testlink1
-                    
-                    else:
-                        print('first one failed')
-                        print('trying again')
-                        testlink2 = await testchannel.send(newlink) #send to the test channel
-                        if testlink2.embeds[0].video:
-                            print('testlink2 = success')
-                            print('|||----LOOK FOR SUCCESS----|||')
-                        else:
-                            print('might not have video')
-                            print('|||----LOOK FOR SUCCESS----|||')
-
-                except:
-                    print('might not have video')
-                try:
-                    testlink3 = testlink2
-                    if testlink3.embeds[0].video: #if the link has a video
-                        print('video does exist')
-                        sant = str(message.author) + " - " + newlink
-                        output = await message.channel.send(sant) #send link to channel
-                        await output.edit(content=(message.author.mention) + " - " + newlink)
-                        await message.delete() #delete first message
-                        print('video posted')
-
-                        return
-
-                    else:
-                        print('video does not exist')
-                except Exception as e:
-                    print('Exception: ' + str(e)) 
-
-                    
+                if len(message.embeds) > 0 and 'video' in message.embeds[0].to_dict():
+                    try: await message.channel.send(message.content.strip().replace('twitter.com', 'vxtwitter.com'))
+                    except: pass # in case of lack of perm
+                    try: await message.delete()
+                    except: pass # in case of lack of perm
+    
     
 async def setup(bot):
     await bot.add_cog(fxCog(bot))
