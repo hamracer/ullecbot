@@ -4,4 +4,4 @@ Here's a not so simple bot for various things in discord.
   
 #### To Do:
 
-* echo > gsheets to sql3lite
+* slash commands
