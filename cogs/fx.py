@@ -19,10 +19,11 @@ class fxCog(commands.Cog, name="fx"):
             if split[0] in ['http:', 'https:'] and split[1] == '' and split[2] == 'twitter.com' and ' ' not in split[3] and split[4] == 'status' and ' ' not in split[5]:
                 print('detected twitter message') 
                 if len(message.embeds) > 0 and 'video' in message.embeds[0].to_dict():
-                    try: await message.channel.send(message.author + ": " + message.content.strip().replace('twitter.com', 'vxtwitter.com'))
-                    except: pass # in case of lack of perm
-                    try: await message.delete()
-                    except: pass # in case of lack of perm
+                    try:
+                        await message.channel.send(message.author.mention + ": " + message.content.strip().replace('twitter.com', 'vxtwitter.com'))
+                        await message.delete()
+                    except:
+                        pass # in case of lack of perm
     
     
 async def setup(bot):
