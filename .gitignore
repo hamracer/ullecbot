@@ -3,4 +3,9 @@
 *.xml
 **/__pycache__
 .vscode
+configs/token.json
 venv
+configs/blissful-land-240720-c3abbb49b748.json
+configs/twitter.json
+*.db
+test.py

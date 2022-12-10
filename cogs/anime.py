@@ -301,8 +301,8 @@ class animeCog(commands.Cog, name="anime"):
 
 
 
-def setup(bot):
-    bot.add_cog(animeCog(bot))
+async def setup(bot):
+    await bot.add_cog(animeCog(bot))
     print('anime cog loaded')
 
 

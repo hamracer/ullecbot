@@ -1,9 +1,4 @@
-discord.py
-NyaaPy
-gspread
-oauth2client
-asyncpg
+discord.py==2.1.0
+NyaaPy==0.6.1
 pytz
-gspread
-oauth2client
-tweepy
+

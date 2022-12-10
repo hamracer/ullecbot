@@ -4,27 +4,21 @@ from discord.ext.commands import CommandNotFound, MissingPermissions
 import json
 import os
 import random
+import asyncio
 
 
 # approval URL for bot
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
-#coglist = ['dump','snail', 'help', 'dice', 'echo', 'pingstats', 'anime','dnd','uwu','modabuse','muri']
-#coglist = ['echo']
-coglist = ['dump','snail', 'help', 'dice', 'pingstats', 'anime','dnd','uwu','modabuse','muri']
+
+coglist = ['anime','fx']
+
 bot.remove_command('help')
-spook = [   "This only makes me stronger.",
-            "I’m /gbfg/'s reckoning.",
-            "GIVE ME MORE",
-            "Welcome to the future.",
-            "Did you think that I'd forget?",
-            "SHHHHHHHHHAAAAAAAAAAAAAARK",
-            "I am inevitable."
-            ]
+
 def loadtoken():
     # load globals defined in the config file
 
@@ -46,29 +40,19 @@ if not loadtoken():
     exit()
 
 # loading cogs
-if __name__ == '__main__':
-    for load in coglist:
-        try:   
-            bot.load_extension('cogs.'+(load))
-        except Exception as e:
-            print('{} cannot be loaded. [{}]'.format(load, e))
+async def load():
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            await bot.load_extension(f'cogs.{filename[:-3]}')
 
-    @bot.event
-    async def on_command_error(ctx, error):
-        if isinstance(error, MissingPermissions):
-            await ctx.message.add_reaction(emoji='😏')
-            if random.randint(1,100) <= 3:
-                await ctx.send(spook[random.randint(0,6)])
-            return
+async def main():
+    await load()
+    await bot.start(bot_token)
 
-        raise error
 
 # starting event
 @bot.event
 async def on_ready():
     print('Bot Running')
 
-bot.run(bot_token)
-
-
-
+asyncio.run(main())
