@@ -40,7 +40,6 @@ class apexCog(commands.Cog, name="apex"):
         splitend = r["ranked"]["current"]["readableDate_start"]
         asset = r["ranked"]["current"]["asset"]
 
-        print(p)
         embed=discord.Embed(title='Apex Legends Ranked')
         embed.set_thumbnail(url=asset)
         embed.add_field(name='Current Map', value=currentmap, inline=True)
