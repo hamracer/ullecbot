@@ -33,11 +33,9 @@ class apexCog(commands.Cog, name="apex"):
     @commands.command()
     async def ranked(self, ctx):
         r = requests.get('https://api.mozambiquehe.re/maprotation?auth=' + token + '&version=2').json()
-        print(r["ranked"])
         currentmap = r["ranked"]["current"]["map"]
         nextmap = r["ranked"]["next"]["map"]
         timeleft = r["ranked"]["current"]["remainingTimer"]
-        splitend = r["ranked"]["current"]["readableDate_start"]
         asset = r["ranked"]["current"]["asset"]
 
         embed=discord.Embed(title='Apex Legends - Ranked')
