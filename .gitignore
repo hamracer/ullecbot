@@ -9,3 +9,4 @@ configs/blissful-land-240720-c3abbb49b748.json
 configs/twitter.json
 *.db
 test.py
+configs/apexapi.json

@@ -15,7 +15,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
-coglist = ['anime','fx']
+#coglist = ['anime','fx','apex']
+coglist = ['apex']
 
 bot.remove_command('help')
 
