@@ -10,3 +10,4 @@ configs/twitter.json
 *.db
 test.py
 configs/apexapi.json
+firsttimerun.md
