@@ -16,7 +16,7 @@ intents.members = True
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
 #coglist = ['anime','fx','apex']
-coglist = ['apex']
+coglist = ['apex','anime']
 
 bot.remove_command('help')
 
@@ -42,9 +42,15 @@ if not loadtoken():
 
 # loading cogs
 async def load():
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f'cogs.{filename[:-3]}')
+    for cogs in coglist:
+        try:
+            await bot.load_extension('cogs.'+(cogs))
+        except Exception as e:
+            print('{} cannot be loaded. [{}]'.format(load, e))
+    
+    #for filename in os.listdir('./cogs'):
+    #    if filename.endswith('.py'):
+    #        await bot.load_extension(f'cogs.{filename[:-3]}')
 
 async def main():
     await load()
