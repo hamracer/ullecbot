@@ -11,12 +11,11 @@ import asyncio
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
 intents = discord.Intents.all()
-intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
 #coglist = ['anime','fx','apex']
-coglist = ['apex','anime']
+coglist = ['pit2']
 
 bot.remove_command('help')
 
