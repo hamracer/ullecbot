@@ -51,6 +51,14 @@ async def load():
     #    if filename.endswith('.py'):
     #        await bot.load_extension(f'cogs.{filename[:-3]}')
 
+@bot.command()
+async def rcl(ctx):
+    for cogs in coglist:
+        try:
+            await bot.reload_extension('cogs.'+(cogs))
+        except Exception as e:
+            print('{} cannot be reloaded. [{}]'.format(load, e))
+
 async def main():
     await load()
     await bot.start(bot_token)
