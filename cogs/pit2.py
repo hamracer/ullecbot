@@ -1,8 +1,7 @@
 import discord
 from discord.ext import commands
-import json
+import random
 import asyncio
-import time
 
 
 
@@ -17,6 +16,24 @@ class pit2Cog(commands.Cog, name="pit2"):
         
     loadconfig()
 
+
+
+    
+    async def countdown(self, timer, xcage):
+        print(timer)
+        while timer > 5:
+            if timer%60 == 0:
+                await xcage.send(f"You have {timer} seconds remaining")
+            await asyncio.sleep(1)
+            timer -= 1
+            print(timer)
+        else:
+            #close thread
+            print("closing")
+            await xcage.send(f"This cage is closing in {timer} seconds")
+            await asyncio.sleep(5)
+            await xcage.delete()
+
     @commands.Cog.listener()
     async def on_member_update(self, before:discord.Member, after:discord.Member):
         channel = self.bot.get_channel(int(pit2channel))
@@ -27,7 +44,11 @@ class pit2Cog(commands.Cog, name="pit2"):
                 name=str(after.name) + "'s cage",
                 type=discord.ChannelType.public_thread
             )
-            await cage.send("Welcome to your cage, you have been timed out for 10 minutes")
+            await cage.send("Welcome to your cage, you have been timed out for 65 seconds")
+            # add timer 6 minutes
+            # roll for + +3, - 2 minutes
+            # show time on every x
+            await self.countdown(timer=65,xcage=cage)
 
 async def setup(bot):
     await bot.add_cog(pit2Cog(bot))
