@@ -63,7 +63,7 @@ async def main():
     await load()
     await bot.start(bot_token)
 
-
+90
 # starting event
 @bot.event
 async def on_ready():

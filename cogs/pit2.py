@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 import random
 import asyncio
-
+from datetime import datetime,date
+from dateutil.relativedelta import relativedelta
 
 
 class pit2Cog(commands.Cog, name="pit2"):
@@ -10,45 +11,53 @@ class pit2Cog(commands.Cog, name="pit2"):
     def __init__(self, bot):
         self.bot = bot
 
-    def loadconfig():
-        global pit2channel
-        pit2channel=1184062256296771584
-        
-    loadconfig()
 
-
-
-    
-    async def countdown(self, timer, xcage):
-        print(timer)
-        while timer > 5:
-            if timer%60 == 0:
-                await xcage.send(f"You have {timer} seconds remaining")
-            await asyncio.sleep(1)
-            timer -= 1
-            print(timer)
+    def getpowerlevel(self, ctx, dodger):
+        #first we get the age of the account
+        print('westart')
+        power = int(0)
+        print(power)
+        createdate = dodger.created_at
+        createdate = createdate.date()
+        todaydate = datetime.today().date()
+        delta = relativedelta(todaydate, createdate)
+        months = delta.years * 12 + delta.months
+        power = power + months
+        print(power)
+        #nitro?
+        role = discord.utils.find(lambda r: r.name == 'Nitrocucks', ctx.message.guild.roles)
+        if role in dodger.role:
+            power = power + int(50)
+            print("in nitrocucks")
+            print(power)    
         else:
-            #close thread
-            print("closing")
-            await xcage.send(f"This cage is closing in {timer} seconds")
-            await asyncio.sleep(5)
-            await xcage.delete()
+            print("no nitro")
+            print(power)    
+        return power
+        
+        
 
-    @commands.Cog.listener()
-    async def on_member_update(self, before:discord.Member, after:discord.Member):
-        channel = self.bot.get_channel(int(pit2channel))
-        role = before.guild.get_role(1184070134751559690)
-        if role in after.roles and role not in before.roles:
-            print('pit2 found')
-            cage = await channel.create_thread(
-                name=str(after.name) + "'s cage",
-                type=discord.ChannelType.public_thread
-            )
-            await cage.send("Welcome to your cage, you have been timed out for 65 seconds")
-            # add timer 6 minutes
-            # roll for + +3, - 2 minutes
-            # show time on every x
-            await self.countdown(timer=65,xcage=cage)
+    @commands.command()
+    async def bullethell(self, ctx):
+        print('bullethell')
+        dodger = ctx.author
+        print(dodger.name)
+        powerlevel = self.getpowerlevel(ctx, dodger)
+        print(powerlevel)
+        
+    @commands.command()
+    async def ls(self, ctx):
+        print('starting')
+        channel = discord.utils.get(ctx.guild.channels, name='starboard')
+        sblist = []
+        if channel:
+            print('starboard exists')
+            sblist = await channel.history(limit=100).flatten()
+            print('final')
+            print(sblist)
+        else:
+            print('does not exist')
+
 
 async def setup(bot):
     await bot.add_cog(pit2Cog(bot))
