@@ -25,8 +25,10 @@ class pit2Cog(commands.Cog, name="pit2"):
         power = power + months
         print(power)
         #nitro?
-        role = discord.utils.find(lambda r: r.name == 'Nitrocucks', ctx.message.guild.roles)
-        if role in dodger.role:
+        role = discord.utils.get(ctx.guild.roles, name="Nitrocucks")
+        print('finding role')
+        print(dodger.roles)
+        if role in dodger.roles:
             power = power + int(50)
             print("in nitrocucks")
             print(power)    
@@ -38,13 +40,18 @@ class pit2Cog(commands.Cog, name="pit2"):
         
 
     @commands.command()
-    async def bullethell(self, ctx):
+    async def bh(self, ctx):
         print('bullethell')
         dodger = ctx.author
         print(dodger.name)
         powerlevel = self.getpowerlevel(ctx, dodger)
         print(powerlevel)
-        
+        #ideas for this, dodge x bullets increases per level?
+        #power level for me is 96 maybe 146 max at 200 
+        # (96/200 .48 + 1) * roll(d20) 
+        #
+
+
     @commands.command()
     async def ls(self, ctx):
         print('starting')

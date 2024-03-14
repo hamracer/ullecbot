@@ -1,4 +1,4 @@
-discord.py==2.1.0
-NyaaPy==0.6.1
+discord.py
+NyaaPy
 pytz
-
+python-dateutil
