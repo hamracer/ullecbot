@@ -52,7 +52,8 @@ async def load():
     #        await bot.load_extension(f'cogs.{filename[:-3]}')
 
 @bot.command()
-async def rcl(ctx):
+@commands.is_owner()
+async def re(ctx):
     for cogs in coglist:
         try:
             await bot.reload_extension('cogs.'+(cogs))

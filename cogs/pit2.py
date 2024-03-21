@@ -5,6 +5,7 @@ import asyncio
 from datetime import datetime,date
 from dateutil.relativedelta import relativedelta
 import math
+from PIL import Image
 
 
 class pit2Cog(commands.Cog, name="pit2"):
@@ -15,83 +16,101 @@ class pit2Cog(commands.Cog, name="pit2"):
 
     def getpowerlevel(self, ctx, dodger):
         #first we get the age of the account
-        print('westart')
         power = int(0)
-        print(power)
         createdate = dodger.created_at
         createdate = createdate.date()
         todaydate = datetime.today().date()
         delta = relativedelta(todaydate, createdate)
         months = delta.years * 12 + delta.months
         power = power + months
-        print(power)
-        #nitro?
-        role = discord.utils.get(ctx.guild.roles, name="Nitrocucks")
-        print('finding role')
-        print(dodger.roles)
-        if role in dodger.roles:
-            power = power + int(50)
-            print("in nitrocucks")
-            print(power)    
-        else:
-            print("no nitro")
-            print(power)    
         return power
         
     def dice(self):
         diceroll = random.randint(1,20)
-        return str(diceroll)
+        return diceroll
 
     @commands.command()
     async def bh(self, ctx):
         print('bullethell')
         dodger = ctx.author
-        print(dodger.name)
-        powerlevel = self.getpowerlevel(ctx, dodger)
-        print(powerlevel)
-        # ideas for this, dodge x bullets increases per level?
-        # power level for me is 96 maybe 146 max at 200 
-        # (96/15 + 1) * x roll(d20) 
-        # eg level 1 dc 12 * 10
-        # 3 lives?
-        dc = 12
-        rollpower = math.ceil((powerlevel/17)) + 1 
-        #10 rolls
-        numrolls = 10
+        dodgerpl = self.getpowerlevel(ctx, dodger)
+
+        modrole = discord.utils.get(ctx.guild.roles, name="mod")
+        modnum = [m.name for m in modrole.members]
+
+        inittitle = str(ctx.author.display_name + ' runs the gauntlet')
+        embed = discord.Embed(color=0x9062d3, title = inittitle)
+        embed.set_thumbnail(url=ctx.author.avatar.url)
+        emby = await ctx.reply(embed=embed)
+
+        rolls = len(modnum)
+        dodgerac = int(14)
+        i = 0
+        print(rolls)
+        modM = [m for m in modrole.members]
+        hitcounter = int(0)
+        while rolls > i:
+            embed.clear_fields()
+            print("checking power1")
+            print(i)
+            i += 1
+            print(i)
+            # mod powerlevel
+            modpl = self.getpowerlevel(ctx, dodger=modM[i-1])
+            print(modpl)
+            modroll = int(self.dice())
         
-        print('rollpower = ' + str(rollpower))
+            print(str(modpl) + " vs " + str(dodgerpl))
 
-        # number of mods?
-        for members in ctx.guild.members:
-            for modrole in members.role:
-                if 'mod' in modrole.name:
-                    print(members.name + " has the role" + modrole.name)
+            embed.add_field(name=str(i) + " of " + str(rolls), value="", inline=False)
+            print("starting")
+            
+            if modpl > dodgerpl:
+                print("checking power2")
+                modroll = modroll + 2
+                print("checking power2")
+            else:
+                print("checking power3")
+                modroll = modroll - 1
+                print("checking power3")
+            print(str(modroll) + " vs " + str(dodgerac))
+            if modroll > dodgerac:
+                print('hit')
+                hitcounter += 1
+                inittitle = str(ctx.author.display_name + ' has been hit ' + str(hitcounter) + " times")
+                embed = discord.Embed(color=0x9062d3, title = inittitle)
+                embed.set_thumbnail(url=modM[i-1].avatar.url)
+                embed.set_footer(text=str(modroll) + "/20 > " + str(dodgerac))
+                embed.add_field(name=str(modM[i-1].display_name) + " shoots " + str(dodger), value=str(dodger) + " has been hit!", inline=False)
+                
+            else: 
+                print('dodge')
+                inittitle = str(ctx.author.display_name + ' has been hit ' + str(hitcounter) + " times")
+                embed = discord.Embed(color=0x9062d3, title = inittitle)
+                embed.set_thumbnail(url=ctx.author.avatar.url)
+                embed.set_footer(text=str(modroll) + "/20 ≤ " + str(dodgerac))
+                embed.add_field(name=str(modM[i-1].display_name) + " shoots " + str(dodger), value=str(dodger) + " dodges!", inline=False)
+            print("waiting")
 
+            await asyncio.sleep(3)
+            await emby.edit(embed=embed)
+            print("END------------------------")
 
-
-        embed = discord.Embed(color=0x9062d3)
-        embed.set_author(name='ullec bot')
-        r = 0
-        rolls = 4
-        while rolls > r:
-            r += 1
-            diceroll = self.dice()
-            print(diceroll)
-
-
-
-    @commands.command()
-    async def ls(self, ctx):
-        print('starting')
-        channel = discord.utils.get(ctx.guild.channels, name='starboard')
-        sblist = []
-        if channel:
-            print('starboard exists')
-            sblist = await channel.history(limit=100).flatten()
-            print('final')
-            print(sblist)
+        await asyncio.sleep(3)
+        if hitcounter > 0:
+            pittimer = pow(2,int(hitcounter))
+            inittitle = str(ctx.author.display_name + ' has been pitted for ' + str(pittimer) + " minutes")
+            embed = discord.Embed(color=0x9062d3, title = inittitle)
+            embed.set_thumbnail(url=ctx.author.avatar.url)
+            embed.set_footer(text="2^" + str(hitcounter))
+            await emby.edit(embed=embed)
+        
         else:
-            print('does not exist')
+            inittitle = str(ctx.author.display_name + ' has escaped the pit!')
+            embed = discord.Embed(color=0x9062d3, title = inittitle)
+            embed.set_thumbnail(url=ctx.author.avatar.url)
+            embed.set_footer(text=ctx.author.display_name + " has escaped the pit x times")
+            await emby.edit(embed=embed)
 
 
 async def setup(bot):
