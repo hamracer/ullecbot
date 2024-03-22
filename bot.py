@@ -47,7 +47,8 @@ async def load():
         except Exception as e:
             print('{} cannot be loaded. [{}]'.format(load, e))
     
-    #for filename in os.listdir('./cogs'):
+    #for filename in os.listdir('./cogs'):.
+    
     #    if filename.endswith('.py'):
     #        await bot.load_extension(f'cogs.{filename[:-3]}')
 

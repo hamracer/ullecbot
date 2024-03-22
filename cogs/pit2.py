@@ -18,10 +18,26 @@ class pit2Cog(commands.Cog, name="pit2"):
 
     def __init__(self, bot):
         self.bot = bot
+
+    # for rolling a d20, returns value
+    def dice(self):
+        diceroll = random.randint(1,20)
+        return diceroll
+
+    # for account age, returns account age in months
+    def getpowerlevel(self, ctx, dodger):
+        #first we get the age of the account
+        power = int(0)
+        createdate = dodger.created_at
+        createdate = createdate.date()
+        todaydate = datetime.today().date()
+        delta = relativedelta(todaydate, createdate)
+        months = delta.years * 12 + delta.months
+        power = power + months
+        return power
         
-
-
-    async def openpool(self):
+    # for testing the DB connection, prints time + version
+    async def testdb(self):
         try:
             async with pool.connection() as conn:
                 async with conn.cursor() as cur:
@@ -35,37 +51,45 @@ class pit2Cog(commands.Cog, name="pit2"):
             print('something went wrong tehe')
 
 
-
-    def getpowerlevel(self, ctx, dodger):
-        #first we get the age of the account
-        power = int(0)
-        createdate = dodger.created_at
-        createdate = createdate.date()
-        todaydate = datetime.today().date()
-        delta = relativedelta(todaydate, createdate)
-        months = delta.years * 12 + delta.months
-        power = power + months
-        return power
-        
-    def dice(self):
-        diceroll = random.randint(1,20)
-        return diceroll
-
-
-
-    @commands.command()
-    @commands.has_role("cumdev")
-    async def test(self, ctx):
-        await self.openpool()
-
+    # for creating the table
     @commands.command()
     @commands.has_role("cumdev")
     async def ct(self, ctx):
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("CREATE TABLE pit2 (userid integer PRIMARY KEY, hits integer, clears integer, kills integer)")
+                await cur.execute("CREATE TABLE pit2 (userid text PRIMARY KEY, kills integer, clears integer, deaths integer)")
                 print("table created")
 
+    @commands.command()
+    @commands.has_role("cumdev")
+    async def setupdb(self, ctx):
+        print('setup')
+        async with pool.connection() as conn:
+            async with conn.cursor() as cur:
+                modrole = discord.utils.get(ctx.guild.roles, name="mod")
+                modnum = [m.name for m in modrole.members]
+                modlen = len(modnum)
+                modM = [m for m in modrole.members]
+                i = 0
+                while modlen > i:
+                    print(i)
+                    i += 1
+                    modid = modM[i-1].id
+                    print(modid)
+                    try: 
+                        await cur.execute("INSERT INTO pit2 (userid, kills, clears, deaths) VALUES (%s, %s, %s, %s)", (modid, 0, 0, 0))
+                        print('added mod')
+                    except:
+                        print('user already exists')
+                print("setup for mod role")
+
+
+
+    # calls the testdb function
+    @commands.command()
+    @commands.has_role("cumdev")
+    async def test(self, ctx):
+        await self.testdb()
 
 
     @commands.command()
@@ -73,16 +97,18 @@ class pit2Cog(commands.Cog, name="pit2"):
         print('bullethell')
         dodger = ctx.author
         userid = ctx.author.id
+        print(userid)
         dodgerpl = self.getpowerlevel(ctx, dodger)
         #id check
-        print('testing')
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
                 try:
-                    await cur.execute("SELECT * FROM pit2 WHERE userid=?",(userid))
-
+                    print('does the user exists')
+                    await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid))
+                    
                 except:
-                    await cur.execute("INSERT INTO pit2  VALUES (?, ?, ?, ?)", (userid, 0, 0,0))
+                    await cur.execute("INSERT INTO pit2 (userid, kills, clears, deaths) VALUES (%s, %s, %s, %s)", (userid, 0, 0, 0))
+                    print('user created')
 
         modrole = discord.utils.get(ctx.guild.roles, name="mod")
         modnum = [m.name for m in modrole.members]
@@ -116,14 +142,20 @@ class pit2Cog(commands.Cog, name="pit2"):
             else:
                 modroll = modroll - 1
             if modroll > dodgerac:
+                print('hit')
                 hitcounter += 1
                 inittitle = str(ctx.author.display_name + ' has been hit ' + str(hitcounter) + " times")
                 embed = discord.Embed(color=0x9062d3, title = inittitle)
                 embed.set_thumbnail(url=modM[i-1].avatar.url)
                 embed.set_footer(text=str(modroll) + "/20 > " + str(dodgerac))
                 embed.add_field(name=str(modM[i-1].display_name) + " shoots " + str(dodger), value=str(dodger) + " has been hit!", inline=False)
+                async with pool.connection() as conn:
+                    async with conn.cursor() as cur:
+                        modid = modM[i-1].id
+                        await cur.execute("UPDATE pit2 SET kills=kills+1 WHERE userid=$1",(modid))
                 
             else: 
+                print('dodge')
                 inittitle = str(ctx.author.display_name + ' has been hit ' + str(hitcounter) + " times")
                 embed = discord.Embed(color=0x9062d3, title = inittitle)
                 embed.set_thumbnail(url=ctx.author.avatar.url)
@@ -135,19 +167,27 @@ class pit2Cog(commands.Cog, name="pit2"):
 
         await asyncio.sleep(3)
         if hitcounter > 0:
+            print('death!')
             pittimer = pow(2,int(hitcounter))
             inittitle = str(ctx.author.display_name + ' has been pitted for ' + str(pittimer) + " minutes")
             embed = discord.Embed(color=0x9062d3, title = inittitle)
             embed.set_thumbnail(url=ctx.author.avatar.url)
             embed.set_footer(text="2^" + str(hitcounter))
             await emby.edit(embed=embed)
+            async with pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute("UPDATE pit2 SET deaths=deaths+1 WHERE userid=$1",(dodger.id))
         
         else:
+            print('clear')
             inittitle = str(ctx.author.display_name + ' has escaped the pit!')
             embed = discord.Embed(color=0x9062d3, title = inittitle)
             embed.set_thumbnail(url=ctx.author.avatar.url)
             embed.set_footer(text=ctx.author.display_name + " has escaped the pit x times")
             await emby.edit(embed=embed)
+            async with pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute("UPDATE pit2 SET clears=clears+1 WHERE userid=$1",(dodger.id))
 
 
 async def setup(bot):
