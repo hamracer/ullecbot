@@ -61,13 +61,9 @@ class pit2Cog(commands.Cog, name="pit2"):
     @commands.command()
     @commands.has_role("cumdev")
     async def ct(self, ctx):
-        print('1')
         async with pool.connection() as conn:
-            print('1')
             async with conn.cursor() as cur:
-                print('1')
                 await cur.execute("CREATE TABLE pit2 (userid integer PRIMARY KEY, hits integer, clears integer, kills integer)")
-                print('1')
                 print("table created")
 
 
@@ -79,8 +75,14 @@ class pit2Cog(commands.Cog, name="pit2"):
         userid = ctx.author.id
         dodgerpl = self.getpowerlevel(ctx, dodger)
         #id check
-        
- 
+        async with pool.connection() as conn:
+            async with conn.cursor() as cur:
+                try:
+                    await cur.execute("SELECT * FROM pit2 WHERE userid=?",(userid))
+
+                except:
+                    await cur.execute("INSERT INTO pit2  VALUES (?, ?, ?, ?)", (userid, 0, 0,0))
+
         modrole = discord.utils.get(ctx.guild.roles, name="mod")
         modnum = [m.name for m in modrole.members]
 
