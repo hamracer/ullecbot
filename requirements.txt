@@ -2,3 +2,7 @@ discord.py
 NyaaPy
 pytz
 python-dateutil
+psycopg[binary]
+psycopg_pool
+python-dotenv
+aiopg
