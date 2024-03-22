@@ -57,7 +57,7 @@ class pit2Cog(commands.Cog, name="pit2"):
     async def ct(self, ctx):
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("CREATE TABLE pit2 (userid text PRIMARY KEY, kills integer, clears integer, deaths integer)")
+                await cur.execute("CREATE TABLE pit2 (userid bigint PRIMARY KEY, kills integer, clears integer, deaths integer)")
                 print("table created")
 
     @commands.command()
@@ -104,9 +104,12 @@ class pit2Cog(commands.Cog, name="pit2"):
             async with conn.cursor() as cur:
                 try:
                     print('does the user exists')
-                    await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid))
-                    
+                    checky = await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid))
+                    print (checky)
+                    print('run check')
+                    userid == checky
                 except:
+                    print('fails to find')
                     await cur.execute("INSERT INTO pit2 (userid, kills, clears, deaths) VALUES (%s, %s, %s, %s)", (userid, 0, 0, 0))
                     print('user created')
 
