@@ -75,6 +75,7 @@ class pit2Cog(commands.Cog, name="pit2"):
         userid = ctx.author.id
         dodgerpl = self.getpowerlevel(ctx, dodger)
         #id check
+        print('testing')
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
                 try:
