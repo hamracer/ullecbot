@@ -5,7 +5,7 @@ import json
 import os
 import random
 import asyncio
-
+import sys
 
 # approval URL for bot
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
@@ -24,6 +24,10 @@ def loadtoken():
 
     global bot_token
 
+    if sys.platform == 'win32':
+        print('real win32 pog')
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     try:
         with open('configs/token.json') as f:
             print('loading token file for main bot')
@@ -41,6 +45,8 @@ if not loadtoken():
 
 # loading cogs
 async def load():
+
+    
     for cogs in coglist:
         try:
             await bot.load_extension('cogs.'+(cogs))
@@ -64,6 +70,7 @@ async def re(ctx):
 async def main():
     await load()
     await bot.start(bot_token)
+
 
 90
 # starting event

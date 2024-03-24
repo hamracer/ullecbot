@@ -2,17 +2,24 @@ import discord
 from discord.ext import commands
 import random
 import asyncio
-from datetime import datetime,date
+from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
 import os
 import psycopg
 import psycopg_pool
 from dotenv import load_dotenv
+import sys
 
-path=str(os.getcwd()) + '/configs/.env'
+
+
+if sys.platform == 'win32':
+    path=str(os.getcwd()) + '\configs\.env'
+else:
+    path=str(os.getcwd()) + '/configs/.env'
 load_dotenv(override=True,dotenv_path=path)
 connection_string = os.getenv('DATABASE_URL')
-pool = psycopg_pool.AsyncConnectionPool(connection_string)
+print(connection_string)
+pool = psycopg_pool.AsyncConnectionPool(conninfo=connection_string, open=False)
 
 class pit2Cog(commands.Cog, name="pit2"):
 
@@ -104,13 +111,12 @@ class pit2Cog(commands.Cog, name="pit2"):
             async with conn.cursor() as cur:
                 try:
                     print('does the user exists')
-                    checky = await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid))
-                    print (checky)
-                    print('run check')
-                    userid == checky
+                    await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid,))
+                    checky = await cur.fetchone()
+                    userid == checky[0]
                 except:
                     print('fails to find')
-                    await cur.execute("INSERT INTO pit2 (userid, kills, clears, deaths) VALUES (%s, %s, %s, %s)", (userid, 0, 0, 0))
+                    await cur.execute("INSERT INTO pit2 (userid, kills, clears, deaths) VALUES (%s, %s, %s, %s)", (userid, 0, 0, 0,))
                     print('user created')
 
         modrole = discord.utils.get(ctx.guild.roles, name="mod")
@@ -141,7 +147,7 @@ class pit2Cog(commands.Cog, name="pit2"):
             embed.add_field(name=str(i) + " of " + str(rolls), value="", inline=False)
             
             if modpl > dodgerpl:
-                modroll = modroll + 2
+                modroll = modroll + 1
             else:
                 modroll = modroll - 1
             if modroll > dodgerac:
@@ -155,7 +161,8 @@ class pit2Cog(commands.Cog, name="pit2"):
                 async with pool.connection() as conn:
                     async with conn.cursor() as cur:
                         modid = modM[i-1].id
-                        await cur.execute("UPDATE pit2 SET kills=kills+1 WHERE userid=$1",(modid))
+                        await cur.execute("UPDATE pit2 SET kills=kills+1 WHERE userid=%s",(modid,))
+                        print('added kill')
                 
             else: 
                 print('dodge')
@@ -165,7 +172,7 @@ class pit2Cog(commands.Cog, name="pit2"):
                 embed.set_footer(text=str(modroll) + "/20 ≤ " + str(dodgerac))
                 embed.add_field(name=str(modM[i-1].display_name) + " shoots " + str(dodger), value=str(dodger) + " dodges!", inline=False)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
             await emby.edit(embed=embed)
 
         await asyncio.sleep(3)
@@ -179,22 +186,36 @@ class pit2Cog(commands.Cog, name="pit2"):
             await emby.edit(embed=embed)
             async with pool.connection() as conn:
                 async with conn.cursor() as cur:
-                    await cur.execute("UPDATE pit2 SET deaths=deaths+1 WHERE userid=$1",(dodger.id))
+                    await cur.execute("UPDATE pit2 SET deaths=deaths+1 WHERE userid=%s",(dodger.id,))
+                    print('added death')
+                    print(pittimer)
+                    delta = timedelta(minutes=float(pittimer))
+                    print(delta)
+                    await dodger.timeout(until=delta)
+                    print('timed out')
+            
         
         else:
             print('clear')
             inittitle = str(ctx.author.display_name + ' has escaped the pit!')
             embed = discord.Embed(color=0x9062d3, title = inittitle)
             embed.set_thumbnail(url=ctx.author.avatar.url)
-            embed.set_footer(text=ctx.author.display_name + " has escaped the pit x times")
-            await emby.edit(embed=embed)
             async with pool.connection() as conn:
                 async with conn.cursor() as cur:
-                    await cur.execute("UPDATE pit2 SET clears=clears+1 WHERE userid=$1",(dodger.id))
+                    await cur.execute("UPDATE pit2 SET clears=clears+1 WHERE userid=%s",(dodger.id,))
+                    print('added clear')
+                    await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid,))
+                    poop = await cur.fetchone()
+                    
+            embed.set_footer(text=ctx.author.display_name + " has escaped the pit " + str(poop[2]) + " times")
+            await emby.edit(embed=embed)
+
 
 
 async def setup(bot):
     await bot.add_cog(pit2Cog(bot))
     print('pit2 cog loaded')
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) 
+    await pool.open()
     
     
