@@ -56,7 +56,7 @@ class pit2Cog(commands.Cog, name="pit2"):
                     print('PostgreSQL version:', version)
         except:
             print('something went wrong tehe')
-
+        return
 
     # for creating the table
     @commands.command()
@@ -96,24 +96,43 @@ class pit2Cog(commands.Cog, name="pit2"):
     @commands.command()
     @commands.has_role("cumdev")
     async def test(self, ctx):
+        await pool.open()
         await self.testdb()
 
 
     @commands.command()
     async def bh(self, ctx):
+        await pool.open()
         print('bullethell')
         dodger = ctx.author
         userid = ctx.author.id
-        print(userid)
         dodgerpl = self.getpowerlevel(ctx, dodger)
         #id check
+        print('starting id check')
+        inittitle = str(ctx.author.display_name + ' runs the gauntlet')
+        embed = discord.Embed(color=0x9062d3, title = inittitle)
         async with pool.connection() as conn:
+            print('pool connection')
             async with conn.cursor() as cur:
+                print('cursor connection')
                 try:
                     print('does the user exists')
                     await cur.execute("SELECT * FROM pit2 WHERE userid=%s",(userid,))
                     checky = await cur.fetchone()
+                    print(userid)
+                    print(checky[0])
                     userid == checky[0]
+                    print(checky[2])
+                    if checky[2] == 0:
+                        embed.add_field(name=ctx.author.display_name + " has not previously escaped", value="", inline=False)
+                    print("1")
+                    if checky[2] == 1:
+                        embed.add_field(name=ctx.author.display_name + " has previously escaped " + str(checky[2]) + " time", value="", inline=False)
+                    print("2")
+                    if checky[2] >= 2:
+                        print("3")
+                        embed.add_field(name=ctx.author.display_name + " has previously escaped " + str(checky[2]) + " times", value="", inline=False)
+                    
                 except:
                     print('fails to find')
                     await cur.execute("INSERT INTO pit2 (userid, kills, clears, deaths) VALUES (%s, %s, %s, %s)", (userid, 0, 0, 0,))
@@ -121,10 +140,9 @@ class pit2Cog(commands.Cog, name="pit2"):
 
         modrole = discord.utils.get(ctx.guild.roles, name="mod")
         modnum = [m.name for m in modrole.members]
-
-        inittitle = str(ctx.author.display_name + ' runs the gauntlet')
-        embed = discord.Embed(color=0x9062d3, title = inittitle)
+        
         embed.set_thumbnail(url=ctx.author.avatar.url)
+        
         emby = await ctx.reply(embed=embed)
 
         rolls = len(modnum)
@@ -183,16 +201,22 @@ class pit2Cog(commands.Cog, name="pit2"):
             embed = discord.Embed(color=0x9062d3, title = inittitle)
             embed.set_thumbnail(url=ctx.author.avatar.url)
             embed.set_footer(text="2^" + str(hitcounter))
-            await emby.edit(embed=embed)
             async with pool.connection() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute("UPDATE pit2 SET deaths=deaths+1 WHERE userid=%s",(dodger.id,))
-                    print('added death')
-                    print(pittimer)
-                    delta = timedelta(minutes=float(pittimer))
-                    print(delta)
-                    await dodger.timeout(until=delta)
-                    print('timed out')
+                    try:
+                        await dodger.timeout(timedelta(minutes=float(pittimer)))
+                        await cur.execute("SELECT * FROM pit2 ORDER BY kills DESC")
+                        stat = await cur.fetchone()
+                        topshooter = await (ctx.bot.fetch_user(stat[0]))
+                        embed.add_field(name=topshooter.display_name + " is the top active shooter with " + str(stat[1]) + " kills", value="", inline=False)
+                        embed.add_field(name=ctx.author.display_name + " has been pitted " + str(stat[3]) + " times", value="", inline=False)
+                    except:
+                        embed.add_field(name="this guy is too powerful to pit", value="", inline=False)
+                    
+            await emby.edit(embed=embed)
+
+
             
         
         else:
@@ -212,10 +236,11 @@ class pit2Cog(commands.Cog, name="pit2"):
 
 
 
+
 async def setup(bot):
     await bot.add_cog(pit2Cog(bot))
     print('pit2 cog loaded')
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) 
-    await pool.open()
+    
     
     
