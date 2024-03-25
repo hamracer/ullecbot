@@ -146,7 +146,7 @@ class pit2Cog(commands.Cog, name="pit2"):
         emby = await ctx.reply(embed=embed)
 
         rolls = len(modnum)
-        dodgerac = int(14)
+        dodgerac = int(12)
         i = 0
         print(rolls)
         modM = [m for m in modrole.members]
