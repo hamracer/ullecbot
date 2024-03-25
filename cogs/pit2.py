@@ -210,7 +210,7 @@ class pit2Cog(commands.Cog, name="pit2"):
                         stat = await cur.fetchone()
                         topshooter = await (ctx.bot.fetch_user(stat[0]))
                         embed.add_field(name=topshooter.display_name + " is the top active shooter with " + str(stat[1]) + " kills", value="", inline=False)
-                        embed.add_field(name=ctx.author.display_name + " has been pitted " + str(stat[3]) + " times", value="", inline=False)
+                        embed.add_field(name=ctx.author.display_name + " has been pitted " + str(checky[3]) + " times", value="", inline=False)
                     except:
                         embed.add_field(name="this guy is too powerful to pit", value="", inline=False)
                     
