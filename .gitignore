@@ -11,5 +11,5 @@ configs/blissful-land*
 configs/twitter.json
 *.db
 configs/apexapi.json
-firsttimerun.md
+*run.md
 debug.log
