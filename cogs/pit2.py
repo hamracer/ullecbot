@@ -240,7 +240,8 @@ class pit2Cog(commands.Cog, name="pit2"):
 async def setup(bot):
     await bot.add_cog(pit2Cog(bot))
     print('pit2 cog loaded')
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) 
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) 
     
     
     
