@@ -10,8 +10,6 @@ venv
 configs/blissful-land*
 configs/twitter.json
 *.db
-test.py
 configs/apexapi.json
-firsttimerun.mdk
+firsttimerun.md
 debug.log
-.DS_Store
