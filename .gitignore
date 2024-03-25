@@ -5,6 +5,7 @@
 .vscode
 configs/token.json
 venv
+.venv
 *.env
 configs/blissful-land*
 configs/twitter.json
