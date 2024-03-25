@@ -14,8 +14,8 @@ intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
-#coglist = ['anime','fx','apex']
-coglist = ['pit2']
+coglist = ['anime','fx','apex','pit2']
+#coglist = ['pit2']
 
 bot.remove_command('help')
 
