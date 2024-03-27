@@ -1,4 +1,8 @@
-discord.py==2.1.0
+discord.py
 NyaaPy==0.6.1
 pytz
-
+python-dateutil
+psycopg[binary]
+psycopg_pool
+python-dotenv
+aiopg

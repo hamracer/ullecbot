@@ -5,18 +5,17 @@ import json
 import os
 import random
 import asyncio
-
+import sys
 
 # approval URL for bot
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
 
 intents = discord.Intents.all()
-intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
-#coglist = ['anime','fx','apex']
-coglist = ['apex','anime']
+coglist = ['anime','fx','apex','pit2']
+#coglist = ['pit2']
 
 bot.remove_command('help')
 
@@ -24,6 +23,10 @@ def loadtoken():
     # load globals defined in the config file
 
     global bot_token
+
+    if sys.platform == 'win32':
+        print('real win32 pog')
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     try:
         with open('configs/token.json') as f:
@@ -42,21 +45,29 @@ if not loadtoken():
 
 # loading cogs
 async def load():
+
+    
     for cogs in coglist:
         try:
             await bot.load_extension('cogs.'+(cogs))
         except Exception as e:
             print('{} cannot be loaded. [{}]'.format(load, e))
-    
-    #for filename in os.listdir('./cogs'):
-    #    if filename.endswith('.py'):
-    #        await bot.load_extension(f'cogs.{filename[:-3]}')
+
+@bot.command()
+@commands.is_owner()
+async def re(ctx):
+    for cogs in coglist:
+        try:
+            await bot.reload_extension('cogs.'+(cogs))
+        except Exception as e:
+            print('{} cannot be reloaded. [{}]'.format(load, e))
 
 async def main():
     await load()
     await bot.start(bot_token)
 
 
+90
 # starting event
 @bot.event
 async def on_ready():
