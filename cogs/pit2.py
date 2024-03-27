@@ -99,8 +99,8 @@ class pit2Cog(commands.Cog, name="pit2"):
         await pool.open()
         await self.testdb()
 
-
-    @commands.command()
+    
+    @commands.command(name='bh', aliases=['sendmetotheshadowrealm'])
     async def bh(self, ctx):
         await pool.open()
         print('bullethell')
