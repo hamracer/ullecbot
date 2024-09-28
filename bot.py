@@ -14,7 +14,7 @@ intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
-coglist = ['anime','fx','apex','pit2','countdown']
+coglist = ['anime','fx','apex','pit2']
 #coglist = ['countdown']
 
 bot.remove_command('help')
@@ -61,6 +61,11 @@ async def re(ctx):
             await bot.reload_extension('cogs.'+(cogs))
         except Exception as e:
             print('{} cannot be reloaded. [{}]'.format(load, e))
+
+@bot.command()
+@commands.is_owner()
+async def itadakimas(ctx):
+    await ctx.bot.logout()
 
 async def main():
     await load()

@@ -10,7 +10,8 @@ class countdownCog(commands.Cog, name="countdown"):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    
+    @commands.command(name='whendoesthemegaquakehappen', aliases=['howlongleftuntiligetonaplaneforjapan'])
     async def howlongleftuntiligetonaplaneforjapan(self, ctx):
         futuredate = datetime.strptime("28/8/2024 11:10:00","%d/%m/%Y %H:%M:%S")
         timezone_offset = +10.0  # Pacific Standard Time (UTC−08:00)
