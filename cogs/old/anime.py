@@ -70,22 +70,21 @@ class animeCog(commands.Cog, name="anime"):
         data = response.json()
 
         output = defaultdict(list)
-        print(output)
+        # print(output)
 
         for show in data['data']['MediaListCollection']['lists'][0]['entries']:
             title = (show['media']['title']['romaji'])
-            print("Title: " + str(title))
+            # print("Title: " + str(title))
             try:
                 airing = (show['media']['nextAiringEpisode']['airingAt'])
-                print("Raw Airing: " + str(airing))
+                # print("Raw Airing: " + str(airing))
                 air_date = (datetime.datetime.utcfromtimestamp(airing))
-                print("Airing: " + str(air_date))
+                # print("Airing: " + str(air_date))
                 output[weekdays[air_date.astimezone(pacificTime).weekday()]].append(title)
             except:
                 pass
 
             #  dictionary called output, inside list of weekdays, inside a list of days derived from the air_date
-        print(output)
         return output
 
 

@@ -6,6 +6,7 @@ import os
 import random
 import asyncio
 import sys
+import glob
 
 # approval URL for bot
 # https://discordapp.com/oauth2/authorize?client_id=562335932813017134&scope=bot
@@ -14,7 +15,8 @@ intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='.', intents=intents)  # bot command
 
-coglist = ['anime','fx','apex','pit2']
+coglist = [os.path.basename(f)[:-3] for f in glob.glob("cogs/[!_]*.py")]
+
 #coglist = ['countdown']
 
 bot.remove_command('help')
