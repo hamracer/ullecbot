@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from NyaaPy import Nyaa
 import datetime
 from collections import defaultdict
 import requests
@@ -44,6 +43,7 @@ class animeCog(commands.Cog, name="anime"):
 
 
     def dict_builder(self):
+        print("starting dict build")
         query = '''
                 query {
                     MediaListCollection(userName:"notcellu" type:ANIME status:CURRENT){
@@ -65,9 +65,21 @@ class animeCog(commands.Cog, name="anime"):
         url = 'https://graphql.anilist.co'
 
         # Make the HTTP Api request
+        print("starting api req")
         response = requests.post(url, json={'query': query})
 
+        if response.status_code != 200:
+            print(f"API request failed with status code: {response.status_code}")
+            print(f"Response: {response.text}")
+            return defaultdict(list) # Return an empty dict to avoid crashing
+
         data = response.json()
+
+        # Pretty-print the JSON to see its structure
+        print("--- API Response ---")
+        print(json.dumps(data, indent=4))
+        print("--------------------")
+        # --- END OF DEBUG LINES ---
 
         output = defaultdict(list)
         print(output)
@@ -78,7 +90,7 @@ class animeCog(commands.Cog, name="anime"):
             try:
                 airing = (show['media']['nextAiringEpisode']['airingAt'])
                 print("Raw Airing: " + str(airing))
-                air_date = (datetime.datetime.utcfromtimestamp(airing))
+                air_date = (datetime.datetime.fromtimestamp(airing))
                 print("Airing: " + str(air_date))
                 output[weekdays[air_date.astimezone(pacificTime).weekday()]].append(title)
             except:
@@ -90,6 +102,7 @@ class animeCog(commands.Cog, name="anime"):
 
 
     async def animeEmbedOutput(self, ctx, listSlice, title):
+        print("starting anime embed")
         outputList = '\n'.join(listSlice)
         embed = discord.Embed()
         embed2 = discord.Embed()

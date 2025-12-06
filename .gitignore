@@ -13,3 +13,7 @@ configs/twitter.json
 configs/apexapi.json
 *run.md
 debug.log
+*.yml
+.dockerignore
+Dockerfile
+test.htm
