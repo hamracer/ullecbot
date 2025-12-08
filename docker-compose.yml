@@ -1,0 +1,6 @@
+services:
+  ullecbot:
+    image: ullecbot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
