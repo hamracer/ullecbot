@@ -6,3 +6,4 @@ psycopg[binary]
 psycopg_pool
 python-dotenv
 aiopg
+aiosqlite
