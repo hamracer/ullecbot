@@ -120,4 +120,14 @@ async def on_ready():
         except Exception as e:
             print("Failed to sync app commands on_ready:", repr(e))
 
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.message.add_reaction('⏰')
+    else:
+        # You can add handling for other errors here if you want
+        print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
+        import traceback
+        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+
 asyncio.run(main())
