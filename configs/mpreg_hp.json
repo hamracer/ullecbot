@@ -2,7 +2,7 @@
   "name": "mpreg",
   "hp": 10000,
   "max_hp": 10000,
-  "last_updated": "2025-12-12T14:18:10.559479Z",
+  "last_updated": "2025-12-13T11:15:32.389924Z",
   "notes": "Boss HP for mpreg; updated by bot commands when attacks occur.",
   "old_hp": 10000
 }

@@ -24,7 +24,7 @@ umproll = '<a:umproll:903953063746883614>'
 
 
 channellist = [1446500430954631359]
-channellist = [1446500430954631359,1447552037100453909]
+#channellist = [1446500430954631359,1447552037100453909]
 mainchannel = [9262371002577715201]
 data =[]  
 
@@ -34,7 +34,7 @@ mainch = True
 
 
 
-async def rolling(user_id):
+async def rolling(user_id, multiplier=1):
     db = await aiosqlite.connect('rolls.db')
     cursor = await db.execute("SELECT boss_kills FROM rolltable WHERE user=?", [user_id])
     result = await cursor.fetchone()
@@ -44,21 +44,21 @@ async def rolling(user_id):
     bonus_chance = boss_kills
 
     theroll = random.randint(1,1000)
-    if theroll <= 1 + bonus_chance:
+    if theroll <= (1 * multiplier) + bonus_chance:
         roll = rainbowborpaspin
         await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
         await db.execute("UPDATE rolltable SET rainbowborpaspins=rainbowborpaspins+1 WHERE user=?",[user_id])
         await db.commit()
         await db.close()
         return roll 
-    if theroll <= 5 + bonus_chance:
+    if theroll <= (5 * multiplier) + bonus_chance:
         roll = goldborpaspin
         await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
         await db.execute("UPDATE rolltable SET goldborpaspins=goldborpaspins+1 WHERE user=?",[user_id])
         await db.commit()
         await db.close()
         return roll
-    if theroll <= 60 + bonus_chance:
+    if theroll <= (60 * multiplier) + bonus_chance:
         roll = borpaspin
         await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
         await db.execute("UPDATE rolltable SET borpas=borpas+1 WHERE user=?",[user_id])
@@ -156,7 +156,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 async with aiosqlite.connect('rolls.db') as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-1 WHERE user=?",[playerid])
                     await db.commit()
-                    roll = await rolling(playerid)
+                    roll = await rolling(playerid, multiplier=1)
                     sent = await ctx.reply(roll)
                     await asyncio.sleep(7)
                     await sent.delete()
@@ -202,7 +202,7 @@ class rollsCog(commands.Cog, name="rolls"):
                     sent = await ctx.reply(embed=embed)
                     for i in range(10):
                         await asyncio.sleep(1)
-                        roll = await rolling(playerid)
+                        roll = await rolling(playerid, multiplier=1)
                         totalrolls.append(roll)
                         sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls).items())))
                         embed.set_field_at(0, name="Rolls...", value=sendies, inline=True)
@@ -293,11 +293,11 @@ class rollsCog(commands.Cog, name="rolls"):
             lost_rolls = []
             for _ in range(100):
                 theroll = random.randint(1,1000)
-                if theroll <= 1 + bonus_chance:
+                if theroll <= 2 + bonus_chance:
                     lost_rolls.append(rainbowborpaspin)
-                elif theroll <= 5 + bonus_chance:
+                elif theroll <= 10 + bonus_chance:
                     lost_rolls.append(goldborpaspin)
-                elif theroll <= 60 + bonus_chance:
+                elif theroll <= 120 + bonus_chance:
                     lost_rolls.append(borpaspin)
                 else:
                     lost_rolls.append("cum")
@@ -325,7 +325,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
         for i in range(10):  # 10 batches
             for _ in range(10):  # 10 rolls per batch
-                roll = await rolling(playerid)
+                roll = await rolling(playerid, multiplier=2)
                 totalrolls_list.append(roll)
 
             sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
@@ -333,6 +333,24 @@ class rollsCog(commands.Cog, name="rolls"):
             await roll_msg.edit(embed=embed)
             if i < 9:  # Don't sleep on the last iteration
                 await asyncio.sleep(1.5)
+
+        # Check for triple borpa bonus
+        counts = Counter(totalrolls_list)
+        if counts[borpaspin] > 0 and counts[goldborpaspin] > 0 and counts[rainbowborpaspin] > 0:
+            borpa_count = counts[borpaspin]
+            gold_count = counts[goldborpaspin]
+            
+            async with aiosqlite.connect('rolls.db') as db:
+                await db.execute("UPDATE rolltable SET borpas=borpas-?, goldborpaspins=goldborpaspins-?, rainbowborpaspins=rainbowborpaspins+? WHERE user=?", (borpa_count, gold_count, borpa_count + gold_count, playerid))
+                await db.commit()
+            
+            # Update list for display
+            totalrolls_list = [rainbowborpaspin if x in (borpaspin, goldborpaspin) else x for x in totalrolls_list]
+            
+            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
+            embed.set_field_at(0, name=f"Rolls... ({len(totalrolls_list)}/100) - TRIPLE BORPA BONUS!", value=sendies, inline=False)
+            await roll_msg.edit(embed=embed)
+            await ctx.send(f"**TRIPLE BORPA!** All borpas converted to {rainbowborpaspin}!")
 
         # --- Cleanup ---
         await ctx.message.remove_reaction(loading, self.bot.user)
@@ -708,28 +726,35 @@ class rollsCog(commands.Cog, name="rolls"):
     async def boss_regen(self):
         """A tasks loop to regenerate the boss HP by 5% of max every hour."""
         await self.bot.wait_until_ready() # Wait for the bot to be online
-        path = 'configs/mpreg_hp.json'
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            print("boss_regen: mpreg_hp.json not found or is invalid. Skipping regen.")
-            return
-
-        current_hp = data.get('hp', 0)
-        max_hp = data.get('max_hp', 10000)
-
-        if current_hp >= max_hp:
-            return
-
-        regen_amount = int(max_hp * 0.05)
-        new_hp = min(current_hp + regen_amount, max_hp)
-        data['hp'] = new_hp
-
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
         
-        print(f"boss_regen: Boss regenerated {regen_amount} HP. New HP: {new_hp}/{max_hp}")
+        bosses = [
+            {'path': 'configs/mpreg_hp.json', 'default_max': 100000},
+            {'path': 'configs/gigampreg_hp.json', 'default_max': 500000}
+        ]
+
+        for boss in bosses:
+            path = boss['path']
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                print(f"boss_regen: {path} not found or is invalid. Skipping regen.")
+                continue
+
+            current_hp = data.get('hp', 0)
+            max_hp = data.get('max_hp', boss['default_max'])
+
+            if current_hp >= max_hp:
+                continue
+
+            regen_amount = int(max_hp * 0.05)
+            new_hp = min(current_hp + regen_amount, max_hp)
+            data['hp'] = new_hp
+
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            
+            print(f"boss_regen: Boss at {path} regenerated {regen_amount} HP. New HP: {new_hp}/{max_hp}")
 
     @commands.Cog.listener()
     async def on_ready(self):
