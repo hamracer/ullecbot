@@ -7,3 +7,4 @@ psycopg_pool
 python-dotenv
 aiopg
 aiosqlite
+matplotlib
