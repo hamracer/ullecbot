@@ -9,7 +9,6 @@ venv
 *.env
 configs/blissful-land*
 configs/twitter.json
-*.db
 configs/apexapi.json
 *run.md
 debug.log
