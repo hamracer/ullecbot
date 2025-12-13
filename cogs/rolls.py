@@ -24,7 +24,7 @@ umproll = '<a:umproll:903953063746883614>'
 
 
 channellist = [1446500430954631359]
-channellist = [1446500430954631359,1447552037100453909]
+#channellist = [1446500430954631359,1447552037100453909]
 mainchannel = [9262371002577715201]
 data =[]  
 
@@ -221,6 +221,127 @@ class rollsCog(commands.Cog, name="rolls"):
                 await ctx.message.add_reaction(tick) 
                 await asyncio.sleep(3)
                 await ctx.message.delete()
+
+    @commands.command()
+    @commands.cooldown(1, 60, commands.BucketType.user)
+    async def bigcum(self, ctx):
+        """Rolls 100 times, but you have to win a coin flip first!"""
+        if ctx.channel.id not in channellist:
+            return
+
+        await ctx.message.add_reaction(loading)
+        data = await dbget()
+        playerid = ctx.author.id
+        alias = ctx.author.name
+
+        # Check if author is in db
+        if not any(i['user'] == playerid for i in data):
+            await ctx.reply("u got no cums loser, use .cum first")
+            await ctx.message.remove_reaction(loading, self.bot.user)
+            return
+
+        # Get updated db value and check rolls
+        data = await dbget()
+        match = next((item for item in data if item['user'] == playerid), None)
+        if not match or int(match['rolls']) < 100:
+            sent = await ctx.reply("u dont got enough cums for this (100 required)")
+            await ctx.message.remove_reaction(loading, self.bot.user)
+            await asyncio.sleep(7)
+            await sent.delete()
+            await ctx.message.delete()
+            return
+
+        # --- Coin Flip ---
+        flip_msg = await ctx.reply("This is a big one. You're betting 100 rolls. Call it in the air. `heads` or `tails`? (15s to answer)")
+
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() in ['heads', 'tails']
+
+        try:
+            choice_msg = await self.bot.wait_for('message', check=check, timeout=15.0)
+            user_choice = choice_msg.content.lower()
+            try:
+                await choice_msg.delete()
+            except discord.Forbidden:
+                pass  # Can't delete messages, oh well
+        except asyncio.TimeoutError:
+            await flip_msg.edit(content="Too slow! The chance is gone. No cums lost.")
+            await ctx.message.remove_reaction(loading, self.bot.user)
+            await asyncio.sleep(7)
+            await flip_msg.delete()
+            await ctx.message.delete()
+            return
+
+        # User made a choice, so they are committed. Subtract rolls.
+        async with aiosqlite.connect('rolls.db') as db:
+            await db.execute("UPDATE rolltable SET rolls=rolls-100 WHERE user=?", [playerid])
+            await db.commit()
+
+        coin_result = random.choice(['heads', 'tails'])
+
+        if user_choice != coin_result:
+            # --- Lose the flip ---
+            await flip_msg.edit(content=f"It was **{coin_result}**. You lose your 100 cum bet. L")
+            
+            # Simulate what they would have won
+            async with aiosqlite.connect('rolls.db') as db:
+                cursor = await db.execute("SELECT boss_kills FROM rolltable WHERE user=?", [playerid])
+                result = await cursor.fetchone()
+                boss_kills = result[0] if result and result[0] is not None else 0
+            
+            bonus_chance = boss_kills
+            lost_rolls = []
+            for _ in range(100):
+                theroll = random.randint(1,1000)
+                if theroll <= 1 + bonus_chance:
+                    lost_rolls.append(rainbowborpaspin)
+                elif theroll <= 5 + bonus_chance:
+                    lost_rolls.append(goldborpaspin)
+                elif theroll <= 60 + bonus_chance:
+                    lost_rolls.append(borpaspin)
+                else:
+                    lost_rolls.append("cum")
+            
+            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(lost_rolls).items())))
+            embed = discord.Embed(title="BIG CUM (LOST)", color=0xff0000, description=f"for {alias}")
+            embed.add_field(name="You would have won...", value=sendies, inline=False)
+            lost_msg = await ctx.send(embed=embed)
+
+            await ctx.message.remove_reaction(loading, self.bot.user)
+            await ctx.message.add_reaction(cross)
+            await asyncio.sleep(10)
+            await flip_msg.delete()
+            await lost_msg.delete()
+            await ctx.message.delete()
+            return
+
+        # --- Win the flip ---
+        await flip_msg.edit(content=f"You called it! It was **{coin_result}**. Here we go!")
+
+        totalrolls_list = []
+        embed = discord.Embed(title="BIG CUM", color=0x9062d3, description=f"for {alias}")
+        embed.add_field(name="Rolls... (0/100)", value="rolling...")
+        roll_msg = await ctx.send(embed=embed)
+
+        for i in range(10):  # 10 batches
+            for _ in range(10):  # 10 rolls per batch
+                roll = await rolling(playerid)
+                totalrolls_list.append(roll)
+
+            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
+            embed.set_field_at(0, name=f"Rolls... ({len(totalrolls_list)}/100)", value=sendies, inline=False)
+            await roll_msg.edit(embed=embed)
+            if i < 9:  # Don't sleep on the last iteration
+                await asyncio.sleep(1.5)
+
+        # --- Cleanup ---
+        await ctx.message.remove_reaction(loading, self.bot.user)
+        await ctx.message.add_reaction(tick)
+        await asyncio.sleep(15)  # a bit longer to see results
+
+        await roll_msg.delete()
+        await flip_msg.delete()
+        await ctx.message.delete()
 
     @app_commands.command(name="borpacheck", description="check the top borpaspinners")
     async def borpacheck(self, interaction: discord.Interaction):
