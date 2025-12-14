@@ -7,7 +7,7 @@ import asyncio
 import aiosqlite
 import os
 
-DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') else 'db/rolls.db'
+DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') and os.access('/opt/data/ullecbot/db', os.W_OK) else 'db/rolls.db'
 
 #active channel list
 channel_id=[1446500430954631359,1447552037100453909]

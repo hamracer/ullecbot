@@ -101,6 +101,7 @@ async def itadakimas(ctx):
     await ctx.bot.logout()
 
 async def main():
+    os.makedirs('db', exist_ok=True)
     await load()
     await bot.start(bot_token)
 

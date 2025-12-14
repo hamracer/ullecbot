@@ -13,7 +13,7 @@ import io
 from io import BytesIO
 
 import os
-DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') else 'db/rolls.db'
+DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') and os.access('/opt/data/ullecbot/db', os.W_OK) else 'db/rolls.db'
 
 gbfgid = '339155308767215618'
 borpaspin = '<a:borpaspin:905835451204640829>'
