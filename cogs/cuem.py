@@ -132,7 +132,7 @@ class cuemCog(commands.Cog, name="cuem"):
 
             # also log the damage into rolls.db
             try:
-                async with aiosqlite.connect('rolls.db') as db:
+                async with aiosqlite.connect('db/rolls.db') as db:
                     await db.execute('''
                         CREATE TABLE IF NOT EXISTS boss_damage (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -259,7 +259,7 @@ class cuemCog(commands.Cog, name="cuem"):
                         pass
 
                 # load user row and handle selection
-                async with aiosqlite.connect('rolls.db') as db:
+                async with aiosqlite.connect('db/rolls.db') as db:
                     cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins FROM rolltable WHERE user=?', [playerid])
                     rows = await cursor.fetchall()
                     if not rows:
