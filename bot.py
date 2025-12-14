@@ -98,7 +98,8 @@ async def load():
 @bot.command()
 @commands.is_owner()
 async def itadakimas(ctx):
-    await ctx.bot.logout()
+    await ctx.ctx.message.add_reaction('<:itadakms:418891389900947467>')
+    await ctx.bot.close()
 
 async def main():
     os.makedirs('db', exist_ok=True)
