@@ -326,16 +326,17 @@ class rollsCog(commands.Cog, name="rolls"):
         embed.add_field(name="Rolls... (0/100)", value="rolling...")
         roll_msg = await ctx.send(embed=embed)
 
-        for i in range(10):  # 10 batches
-            for _ in range(10):  # 10 rolls per batch
-                roll = await rolling(playerid, multiplier=2)
-                totalrolls_list.append(roll)
+        async with aiosqlite.connect(DB_PATH) as db:
+            for i in range(10):  # 10 batches
+                for _ in range(10):  # 10 rolls per batch
+                    roll = await rolling(playerid, multiplier=2, db=db)
+                    totalrolls_list.append(roll)
 
-            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
-            embed.set_field_at(0, name=f"Rolls... ({len(totalrolls_list)}/100)", value=sendies, inline=False)
-            await roll_msg.edit(embed=embed)
-            if i < 9:  # Don't sleep on the last iteration
-                await asyncio.sleep(1.5)
+                sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
+                embed.set_field_at(0, name=f"Rolls... ({len(totalrolls_list)}/100)", value=sendies, inline=False)
+                await roll_msg.edit(embed=embed)
+                if i < 9:  # Don't sleep on the last iteration
+                    await asyncio.sleep(1.5)
 
         # Check for triple borpa bonus
         counts = Counter(totalrolls_list)
