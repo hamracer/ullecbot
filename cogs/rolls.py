@@ -37,44 +37,43 @@ mainch = True
 
 
 
-async def rolling(user_id, multiplier=1):
-    db = await aiosqlite.connect(DB_PATH)
-    cursor = await db.execute("SELECT boss_kills FROM rolltable WHERE user=?", [user_id])
-    result = await cursor.fetchone()
-    boss_kills = result[0] if result and result[0] is not None else 0
-
-    # 0.1% bonus per kill, so 0.001
-    bonus_chance = boss_kills
-
-    theroll = random.randint(1,1000)
-    if theroll <= (1 * multiplier) + bonus_chance:
-        roll = rainbowborpaspin
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
-        await db.execute("UPDATE rolltable SET rainbowborpaspins=rainbowborpaspins+1 WHERE user=?",[user_id])
-        await db.commit()
-        await db.close()
-        return roll 
-    if theroll <= (5 * multiplier) + bonus_chance:
-        roll = goldborpaspin
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
-        await db.execute("UPDATE rolltable SET goldborpaspins=goldborpaspins+1 WHERE user=?",[user_id])
-        await db.commit()
-        await db.close()
-        return roll
-    if theroll <= (60 * multiplier) + bonus_chance:
-        roll = borpaspin
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
-        await db.execute("UPDATE rolltable SET borpas=borpas+1 WHERE user=?",[user_id])
-        await db.commit()
-        await db.close()
-        return roll
+async def rolling(user_id, multiplier=1, db=None):
+    if db is None:
+        conn = await aiosqlite.connect(DB_PATH)
     else:
-        roll = "cum"
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
-        await db.execute("UPDATE rolltable SET cums=cums+1 WHERE user=?",[user_id])
-        await db.commit()
-        await db.close()
+        conn = db
+
+    try:
+        cursor = await conn.execute("SELECT boss_kills FROM rolltable WHERE user=?", [user_id])
+        result = await cursor.fetchone()
+        boss_kills = result[0] if result and result[0] is not None else 0
+
+        # 0.1% bonus per kill, so 0.001
+        bonus_chance = boss_kills
+
+        theroll = random.randint(1,1000)
+        if theroll <= (1 * multiplier) + bonus_chance:
+            roll = rainbowborpaspin
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET rainbowborpaspins=rainbowborpaspins+1 WHERE user=?",[user_id])
+        elif theroll <= (5 * multiplier) + bonus_chance:
+            roll = goldborpaspin
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET goldborpaspins=goldborpaspins+1 WHERE user=?",[user_id])
+        elif theroll <= (60 * multiplier) + bonus_chance:
+            roll = borpaspin
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET borpas=borpas+1 WHERE user=?",[user_id])
+        else:
+            roll = "cum"
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET cums=cums+1 WHERE user=?",[user_id])
+        
+        await conn.commit()
         return roll
+    finally:
+        if db is None:
+            await conn.close()
     
 async def dbget():
     db = await aiosqlite.connect(DB_PATH)
