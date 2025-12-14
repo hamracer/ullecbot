@@ -5,7 +5,9 @@ import datetime
 import random
 import asyncio
 import aiosqlite
+import os
 
+DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') else 'db/rolls.db'
 
 #active channel list
 channel_id=[1446500430954631359,1447552037100453909]
@@ -132,7 +134,7 @@ class cuemCog(commands.Cog, name="cuem"):
 
             # also log the damage into rolls.db
             try:
-                async with aiosqlite.connect('db/rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute('''
                         CREATE TABLE IF NOT EXISTS boss_damage (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -259,7 +261,7 @@ class cuemCog(commands.Cog, name="cuem"):
                         pass
 
                 # load user row and handle selection
-                async with aiosqlite.connect('db/rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins FROM rolltable WHERE user=?', [playerid])
                     rows = await cursor.fetchall()
                     if not rows:

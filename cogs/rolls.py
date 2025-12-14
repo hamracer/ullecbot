@@ -12,6 +12,9 @@ import pandas as pd
 import io
 from io import BytesIO
 
+import os
+DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') else 'db/rolls.db'
+
 gbfgid = '339155308767215618'
 borpaspin = '<a:borpaspin:905835451204640829>'
 goldborpaspin = '<a:goldborpaspin:906324859007696916>'
@@ -35,7 +38,7 @@ mainch = True
 
 
 async def rolling(user_id, multiplier=1):
-    db = await aiosqlite.connect('db/rolls.db')
+    db = await aiosqlite.connect(DB_PATH)
     cursor = await db.execute("SELECT boss_kills FROM rolltable WHERE user=?", [user_id])
     result = await cursor.fetchone()
     boss_kills = result[0] if result and result[0] is not None else 0
@@ -74,7 +77,7 @@ async def rolling(user_id, multiplier=1):
         return roll
     
 async def dbget():
-    db = await aiosqlite.connect('db/rolls.db')
+    db = await aiosqlite.connect(DB_PATH)
     cursor = await db.execute('SELECT user, rolls FROM rolltable')
     rows = await cursor.fetchall()
     data = [{'user': a,'rolls': b,} for a,b in rows]
@@ -95,7 +98,7 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.has_role("cumdev")
     async def ct(self,ctx):
         if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
-            async with aiosqlite.connect('db/rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("CREATE TABLE rolltable (user INT UNIQUE, alias TEXT, rolls INT, totalrolls INT, cums INT, borpas INT, goldborpaspins INT, rainbowborpaspins INT, boss_kills INT);")
                     await db.commit()
                     print("table created")
@@ -107,7 +110,7 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.has_role("cumdev")
     async def dt(self,ctx):
         if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
-            async with aiosqlite.connect('db/rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("DROP TABLE rolltable")
                 await db.commit()
                 await ctx.message.add_reaction(tick)
@@ -119,7 +122,7 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.has_role("cumdev")
     async def setroll(self,ctx, arg1, arg2):
         if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
-            async with aiosqlite.connect('db/rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                 try:
                     await db.execute("UPDATE rolltable SET rolls=? WHERE user=?",(arg1,arg2))
                     await db.commit()
@@ -145,7 +148,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 print("player exists: " + str(playerid)) 
             else:
                 #add author to db
-                async with aiosqlite.connect('db/rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("INSERT INTO rolltable VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0);", (playerid, alias, 110))
                     await db.commit()
                     await ctx.reply("Look here everyone a new cummer!")
@@ -153,7 +156,7 @@ class rollsCog(commands.Cog, name="rolls"):
             data = await dbget()
             match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
             if int(match['rolls']) > 0:
-                async with aiosqlite.connect('db/rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-1 WHERE user=?",[playerid])
                     await db.commit()
                     roll = await rolling(playerid, multiplier=1)
@@ -193,7 +196,7 @@ class rollsCog(commands.Cog, name="rolls"):
             data = await dbget()
             match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
             if int(match['rolls']) >= 10:
-                async with aiosqlite.connect('db/rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-10 WHERE user=?",[playerid])
                     await db.commit()
                     totalrolls = []
@@ -273,7 +276,7 @@ class rollsCog(commands.Cog, name="rolls"):
             return
 
         # User made a choice, so they are committed. Subtract rolls.
-        async with aiosqlite.connect('db/rolls.db') as db:
+        async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("UPDATE rolltable SET rolls=rolls-100 WHERE user=?", [playerid])
             await db.commit()
 
@@ -284,7 +287,7 @@ class rollsCog(commands.Cog, name="rolls"):
             await flip_msg.edit(content=f"It was **{coin_result}**. You lose your 100 cum bet. L")
             
             # Simulate what they would have won
-            async with aiosqlite.connect('db/rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                 cursor = await db.execute("SELECT boss_kills FROM rolltable WHERE user=?", [playerid])
                 result = await cursor.fetchone()
                 boss_kills = result[0] if result and result[0] is not None else 0
@@ -340,7 +343,7 @@ class rollsCog(commands.Cog, name="rolls"):
             borpa_count = counts[borpaspin]
             gold_count = counts[goldborpaspin]
             
-            async with aiosqlite.connect('db/rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE rolltable SET borpas=borpas-?, goldborpaspins=goldborpaspins-?, rainbowborpaspins=rainbowborpaspins+? WHERE user=?", (borpa_count, gold_count, borpa_count + gold_count, playerid))
                 await db.commit()
             
@@ -367,7 +370,7 @@ class rollsCog(commands.Cog, name="rolls"):
             if interaction.channel_id not in channellist:
                 await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
                 return
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
             cursor = await db.execute('SELECT alias, borpas FROM rolltable ORDER BY borpas DESC LIMIT 5')
             rows = await cursor.fetchall()
             ctopid = await db.execute("SELECT user FROM rolltable ORDER BY borpas DESC LIMIT 1")
@@ -395,7 +398,7 @@ class rollsCog(commands.Cog, name="rolls"):
             if interaction.channel_id not in channellist:
                 await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
                 return
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
             cursor = await db.execute('SELECT alias, goldborpaspins FROM rolltable ORDER BY goldborpaspins DESC LIMIT 5')
             rows = await cursor.fetchall()
             ctopid = await db.execute("SELECT user FROM rolltable ORDER BY goldborpaspins DESC LIMIT 1")
@@ -434,7 +437,7 @@ class rollsCog(commands.Cog, name="rolls"):
             else:
                 playerid = interaction.user.id
 
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
             # Fetch stats from rolltable
             roll_cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins, boss_kills FROM rolltable WHERE user=?', [playerid])
             roll_stats = await roll_cursor.fetchone()
@@ -477,7 +480,7 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.command()
     async def pt(self, ctx): 
         if ctx.channel.id in channellist: 
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
             # Get rolls data
             cursor = await db.execute('SELECT user, alias, rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins FROM rolltable WHERE totalrolls>9')
             stats = await cursor.fetchall()
@@ -523,7 +526,7 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.command()
     async def pt2(self, ctx): 
         if ctx.channel.id in channellist: 
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
             # Get rolls data
             cursor = await db.execute('SELECT user, alias, rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins FROM rolltable WHERE totalrolls>9')
             stats = await cursor.fetchall()
@@ -580,7 +583,7 @@ class rollsCog(commands.Cog, name="rolls"):
     async def dpb(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(loading)
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
 
             # Get all user stats from rolltable
             cursor = await db.execute('SELECT user, alias, borpas, goldborpaspins, rainbowborpaspins FROM rolltable')
@@ -642,7 +645,7 @@ class rollsCog(commands.Cog, name="rolls"):
     async def top3(self, ctx):
         if ctx.channel.id in channellist:
             await ctx.message.add_reaction(loading)
-            db = await aiosqlite.connect('db/rolls.db')
+            db = await aiosqlite.connect(DB_PATH)
 
             # Query to get top 3 users by total damage
             cursor = await db.execute("""
@@ -705,7 +708,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 playerid = message.author.id
                 playername = message.author.name
                 try:
-                    async with aiosqlite.connect('db/rolls.db') as db:
+                    async with aiosqlite.connect(DB_PATH) as db:
                         await db.execute("UPDATE rolltable SET rolls=rolls+10 WHERE user=?",[playerid])
                         await db.commit()
                         await message.add_reaction(plusone) 
@@ -718,7 +721,7 @@ class rollsCog(commands.Cog, name="rolls"):
 
     @tasks.loop(hours=3)
     async def freecummies(self):
-        async with aiosqlite.connect('db/rolls.db') as db:
+        async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE rolltable SET rolls=rolls+10")
                 await db.commit()
 

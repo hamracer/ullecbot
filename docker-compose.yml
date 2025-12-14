@@ -1,6 +1,9 @@
 services:
   ullecbot:
     image: ullecbot
+    volumes:
+      - /mnt/disk1/docker/data/ullecbot/db:/opt/data/ullecbot/db
     build:
       context: .
       dockerfile: ./Dockerfile
+networks: {}
