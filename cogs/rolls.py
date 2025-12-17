@@ -719,10 +719,10 @@ class rollsCog(commands.Cog, name="rolls"):
 
     #LOOPS
 
-    @tasks.loop(hours=3)
+    @tasks.loop(hours=1)
     async def freecummies(self):
         async with aiosqlite.connect(DB_PATH) as db:
-                await db.execute("UPDATE rolltable SET rolls=rolls+10")
+                await db.execute("UPDATE rolltable SET rolls=rolls+15")
                 await db.commit()
 
     @tasks.loop(hours=1)
