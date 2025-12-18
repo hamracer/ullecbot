@@ -58,6 +58,45 @@ class cuemCog(commands.Cog, name="cuem"):
         except (FileNotFoundError, json.JSONDecodeError):
             self.active_boss = 'mpreg'
 
+    async def update_daily(self, ctx, user_id, action):
+        today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS dailies (
+                    user INTEGER PRIMARY KEY,
+                    date TEXT,
+                    cum INTEGER,
+                    cum10 INTEGER,
+                    cum2 INTEGER,
+                    claimed INTEGER
+                )
+            ''')
+            
+            cursor = await db.execute("SELECT date, claimed FROM dailies WHERE user=?", [user_id])
+            row = await cursor.fetchone()
+            
+            if not row or row[0] != today:
+                await db.execute("INSERT OR REPLACE INTO dailies (user, date, cum, cum10, cum2, claimed) VALUES (?, ?, 0, 0, 0, 0)", (user_id, today))
+                claimed = 0
+            else:
+                claimed = row[1]
+            
+            if claimed:
+                return
+
+            await db.execute(f"UPDATE dailies SET {action}=1 WHERE user=?", [user_id])
+            
+            cursor = await db.execute("SELECT cum, cum10, cum2 FROM dailies WHERE user=?", [user_id])
+            status = await cursor.fetchone()
+            
+            if status and all(status):
+                await db.execute("UPDATE rolltable SET rolls=rolls+500 WHERE user=?", [user_id])
+                await db.execute("UPDATE dailies SET claimed=1 WHERE user=?", [user_id])
+                await db.commit()
+                await ctx.send(f"**DAILY COMPLETE!** {ctx.author.mention} received 500 rolls!")
+            else:
+                await db.commit()
+
     @commands.command()
     @commands.is_owner()
     async def toggleboss(self, ctx):
@@ -84,6 +123,7 @@ class cuemCog(commands.Cog, name="cuem"):
             return
 
         playerid = ctx.author.id
+        await self.update_daily(ctx, playerid, 'cum2')
 
         if self.active_boss == 'gigampreg':
             current_boss_path = 'configs/gigampreg_hp.json'

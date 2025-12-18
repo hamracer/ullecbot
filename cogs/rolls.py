@@ -1,4 +1,5 @@
 from time import sleep
+import datetime
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -159,6 +160,7 @@ class rollsCog(commands.Cog, name="rolls"):
                     await db.execute("UPDATE rolltable SET rolls=rolls-1 WHERE user=?",[playerid])
                     await db.commit()
                     roll = await rolling(playerid, multiplier=1)
+                    await self.update_daily(ctx, playerid, 'cum')
                     sent = await ctx.reply(roll)
                     await asyncio.sleep(7)
                     await sent.delete()
@@ -198,6 +200,7 @@ class rollsCog(commands.Cog, name="rolls"):
                 async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-10 WHERE user=?",[playerid])
                     await db.commit()
+                    await self.update_daily(ctx, playerid, 'cum10')
                     totalrolls = []
                     embed = discord.Embed(title="Test your luck",color=0x9062d3)
                     embed.add_field(name="Rolls...", value="rolling...")
@@ -689,7 +692,20 @@ class rollsCog(commands.Cog, name="rolls"):
 
     @app_commands.command(name="cumhelp", description="get help with cum commands")
     async def cuhelp(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="Cum Help!",description="Slash Commands:\n- /cumstats\n- /borpacheck\n- /goldcheck\n\nDot Commands:\n- .cum [cooldown: 5 seconds]\n- .cum10 [cooldown: 15 seconds]",color=0x9062d3)
+        description = (
+            "**Slash Commands:**\n"
+            "- /cumstats\n"
+            "- /borpacheck\n"
+            "- /goldcheck\n\n"
+            "**Dot Commands:**\n"
+            "- .cum [cooldown: 5s]\n"
+            "- .cum10 [cooldown: 15s]\n"
+            "- .cum2 [cooldown: 60s]\n"
+            "- .bigcum [cooldown: 60s]\n\n"
+            "**Daily Objectives:**\n"
+            "Complete 1x .cum, 1x .cum10, and 1x .cum2 within 24 hours to receive **500 extra rolls**!"
+        )
+        embed = discord.Embed(title="Cum Help!",description=description,color=0x9062d3)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
