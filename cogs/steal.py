@@ -27,6 +27,9 @@ class stealsCog(commands.Cog, name="steals"):
             emoji = discord.PartialEmoji.from_str(custom_emojis[0])
             await interaction.response.send_message(emoji.url, ephemeral=True)
 
+            if not await self.bot.is_owner(interaction.user):
+                return
+
             target_guild_id = 562352224840187917
             guild = self.bot.get_guild(target_guild_id)
 
