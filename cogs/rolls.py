@@ -151,12 +151,12 @@ class ExchangeView(discord.ui.View):
         self.db_path = db_path
 
     @discord.ui.select(placeholder="Select borpa to exchange...", options=[
-        discord.SelectOption(label="Borpaspin", value="borpas", description="Rate: 10 Tokens"),
-        discord.SelectOption(label="Gold Borpaspin", value="goldborpaspins", description="Rate: 50 Tokens"),
-        discord.SelectOption(label="Rainbow Borpaspin", value="rainbowborpaspins", description="Rate: 200 Tokens"),
+        discord.SelectOption(label="Borpaspin", value="borpas", description="Rate: 1 Tokens"),
+        discord.SelectOption(label="Gold Borpaspin", value="goldborpaspins", description="Rate: 10 Tokens"),
+        discord.SelectOption(label="Rainbow Borpaspin", value="rainbowborpaspins", description="Rate: 100 Tokens"),
     ])
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
-        rates = {"borpas": 10, "goldborpaspins": 50, "rainbowborpaspins": 200}
+        rates = {"borpas": 1, "goldborpaspins": 10, "rainbowborpaspins": 100}
         borpa_type = select.values[0]
         await interaction.response.send_modal(ExchangeModal(borpa_type, rates[borpa_type], self.db_path))
 
