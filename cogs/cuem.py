@@ -203,6 +203,7 @@ class cuemCog(commands.Cog, name="cuem"):
         async def do_animation(roll, dmg_roll, dmg_text, hp_percent: float = None, boss_name: str = None):
                 battle = roll + blank + blank + blank + current_boss_emoji
                 status = current_prep_text
+                sep = "-------------------"
                 
                 if self.active_boss == 'gigampreg':
                     if self.gigampreg_vulnerable_until and datetime.datetime.utcnow() < self.gigampreg_vulnerable_until:
@@ -211,37 +212,33 @@ class cuemCog(commands.Cog, name="cuem"):
                         status = "GIGAMPREG is guarded..."
 
                 print("do_animation: sending initial messages")
-                # use send instead of reply to avoid reply-specific behavior
-                line1 = await ctx.send(battle)
-                line2 = await ctx.send("-------------------------------------")
-                line3 = await ctx.send(status)
+                # use reply to keep it contained
+                msg = await ctx.reply(f"{battle}\n{sep}\n{status}")
 
                 await asyncio.sleep(1)
                 battle = blank + roll + blank + blank + current_boss_emoji
                 status = dmg_roll
-                await line1.edit(content=battle)
-                await line3.edit(content=status)
+                await msg.edit(content=f"{battle}\n{sep}\n{status}")
 
                 await asyncio.sleep(1)
                 battle = blank + blank + roll + blank + current_boss_emoji
-                await line1.edit(content=battle)
+                await msg.edit(content=f"{battle}\n{sep}\n{status}")
 
                 await asyncio.sleep(1)
                 battle = blank + blank + blank + roll + current_boss_emoji
-                await line1.edit(content=battle)
+                await msg.edit(content=f"{battle}\n{sep}\n{status}")
 
                 await asyncio.sleep(1)
                 battle = blank + blank + blank + cum + current_boss_emoji
                 status = dmg_text
                 print(dmg_text)
-                await line1.edit(content=battle)
-                await line3.edit(content=status)
+                await msg.edit(content=f"{battle}\n{sep}\n{status}")
 
                 await asyncio.sleep(1)
                 battle = blank + blank + blank + blank + current_boss_emoji
-                await line1.edit(content=battle)
+                await msg.edit(content=f"{battle}\n{sep}\n{status}")
 
-                # after animation finishes, optionally update status (line3) with a vague HP summary
+                # after animation finishes, optionally update status with a vague HP summary
                 try:
                     if hp_percent is not None:
                         pct = float(hp_percent)
@@ -259,7 +256,7 @@ class cuemCog(commands.Cog, name="cuem"):
                             summary = f"{name} is barely pregnant!"
                         else:
                             summary = f"{name} has been defeated!"
-                        await line3.edit(content=summary)
+                        await msg.edit(content=f"{battle}\n{sep}\n{summary}")
                 except Exception:
                     pass
 
@@ -461,7 +458,7 @@ class cuemCog(commands.Cog, name="cuem"):
         # Show menu in-channel and keep a reference to the sent message on the view
         view = BorpaSelect(owner_id=playerid)
         sendie = ctx.author.name + f" select which borpa to send against {current_boss_name.upper()}:"
-        sent_msg = await ctx.send(sendie, view=view)
+        sent_msg = await ctx.reply(sendie, view=view)
         # attach the message object to the view so the callback can delete it later
         view._message = sent_msg
         return

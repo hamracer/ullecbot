@@ -85,6 +85,81 @@ async def dbget():
     await db.close()
     return data
 
+class ExchangeModal(discord.ui.Modal, title="Exchange Borpas"):
+    def __init__(self, borpa_type, rate, db_path):
+        super().__init__()
+        self.borpa_type = borpa_type
+        self.rate = rate
+        self.db_path = db_path
+        
+    amount = discord.ui.TextInput(label="Amount", placeholder="Enter amount or 'all'")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            val = self.amount.value.lower()
+            user_id = interaction.user.id
+            
+            async with aiosqlite.connect(self.db_path) as db:
+                # Get current balance
+                cursor = await db.execute(f"SELECT {self.borpa_type} FROM rolltable WHERE user=?", (user_id,))
+                row = await cursor.fetchone()
+                
+                if not row:
+                    await interaction.response.send_message("You don't have a profile yet. Use .cum first.", ephemeral=True)
+                    return
+                
+                current_borpas = row[0]
+                
+                if val == 'all':
+                    exchange_amount = current_borpas
+                else:
+                    try:
+                        exchange_amount = int(val)
+                    except ValueError:
+                        await interaction.response.send_message("Invalid amount.", ephemeral=True)
+                        return
+                
+                if exchange_amount <= 0:
+                    await interaction.response.send_message("Amount must be positive.", ephemeral=True)
+                    return
+                
+                if current_borpas < exchange_amount:
+                    await interaction.response.send_message(f"You only have {current_borpas} {self.borpa_type}.", ephemeral=True)
+                    return
+                
+                coins_gained = exchange_amount * self.rate
+                
+                # Update DB
+                await db.execute(f"UPDATE rolltable SET {self.borpa_type} = {self.borpa_type} - ? WHERE user=?", (exchange_amount, user_id))
+                
+                # Ensure tokens table exists
+                await db.execute("CREATE TABLE IF NOT EXISTS tokens (user INTEGER PRIMARY KEY, amount INTEGER)")
+                
+                # Add tokens
+                await db.execute("INSERT INTO tokens (user, amount) VALUES (?, ?) ON CONFLICT(user) DO UPDATE SET amount = amount + ?", (user_id, coins_gained, coins_gained))
+                
+                await db.commit()
+                
+            await interaction.response.send_message(f"Exchanged {exchange_amount} {self.borpa_type} for {coins_gained} Tokens!", ephemeral=True)
+            
+        except Exception as e:
+            await interaction.response.send_message(f"Error: {e}", ephemeral=True)
+
+class ExchangeView(discord.ui.View):
+    def __init__(self, db_path):
+        super().__init__()
+        self.db_path = db_path
+
+    @discord.ui.select(placeholder="Select borpa to exchange...", options=[
+        discord.SelectOption(label="Borpaspin", value="borpas", description="Rate: 10 Tokens"),
+        discord.SelectOption(label="Gold Borpaspin", value="goldborpaspins", description="Rate: 50 Tokens"),
+        discord.SelectOption(label="Rainbow Borpaspin", value="rainbowborpaspins", description="Rate: 200 Tokens"),
+    ])
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+        rates = {"borpas": 10, "goldborpaspins": 50, "rainbowborpaspins": 200}
+        borpa_type = select.values[0]
+        await interaction.response.send_modal(ExchangeModal(borpa_type, rates[borpa_type], self.db_path))
+
 class rollsCog(commands.Cog, name="rolls"):
     def __init__(self, bot):
         self.bot = bot
@@ -493,12 +568,27 @@ class rollsCog(commands.Cog, name="rolls"):
             damage_cursor = await db.execute('SELECT SUM(damage) FROM boss_damage WHERE user=?', [playerid])
             total_damage_stat = await damage_cursor.fetchone()
             total_damage = total_damage_stat[0] if total_damage_stat and total_damage_stat[0] is not None else 0
+            
+            borpacoins = 0
+            tokens = 0
+            try:
+                coin_cursor = await db.execute('SELECT amount FROM borpacoins WHERE user=?', [playerid])
+                coin_stat = await coin_cursor.fetchone()
+                borpacoins = coin_stat[0] if coin_stat else 0
+                
+                token_cursor = await db.execute('SELECT amount FROM tokens WHERE user=?', [playerid])
+                token_stat = await token_cursor.fetchone()
+                tokens = token_stat[0] if token_stat else 0
+            except Exception:
+                pass
+
             await db.close()
 
             stats_dict = {
                 'rolls saved': roll_stats[0], 'total rolls': roll_stats[1], 'cums': roll_stats[2], 
                 'borpaspins': roll_stats[3], 'goldborpaspins': roll_stats[4], 'rainbowborpaspins': roll_stats[5],
-                'boss_kills': roll_stats[6], 'total_damage_done': f"{total_damage:,}"
+                'boss_kills': roll_stats[6], 'total_damage_done': f"{total_damage:,}", 
+                'borpacoins': f"{borpacoins:,}", 'tokens': f"{tokens:,}"
             }
             
             total_borpas = roll_stats[3] + roll_stats[4] + roll_stats[5]
@@ -735,17 +825,38 @@ class rollsCog(commands.Cog, name="rolls"):
             "**Slash Commands:**\n"
             "- /cumstats\n"
             "- /borpacheck\n"
-            "- /goldcheck\n\n"
+            "- /goldcheck\n"
+            "- /exchange\n\n"
             "**Dot Commands:**\n"
             "- .cum [cooldown: 5s]\n"
             "- .cum10 [cooldown: 15s]\n"
             "- .cum2 [cooldown: 60s]\n"
-            "- .bigcum [cooldown: 60s]\n\n"
+            "- .bigcum [cooldown: 60s]\n"
+            "- .spin [cost: 25 tokens]\n\n"
             "**Daily Objectives:**\n"
             "Complete 1x .cum, 1x .cum10, and 1x .cum2 within 24 hours to receive **500 extra rolls**!"
         )
         embed = discord.Embed(title="Cum Help!",description=description,color=0x9062d3)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="exchange", description="Exchange borpas for Tokens")
+    async def exchange(self, interaction: discord.Interaction):
+        if interaction.channel_id not in channellist:
+             await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+             return
+        await interaction.response.send_message("Select a borpa type to exchange:", view=ExchangeView(DB_PATH), ephemeral=True)
+
+    @app_commands.command(name="prizes", description="Display the list of available prizes")
+    async def prizes(self, interaction: discord.Interaction):
+        if interaction.channel_id not in channellist:
+             await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+             return
+        
+        embed = discord.Embed(title="🏆 Prize Shop 🏆", description="Exchange your hard-earned Borpacoins for these prizes!", color=0xFFD700)
+        embed.add_field(name="Custom Title", value="**Cost:** 25,000 Borpacoins\n**Description:** A custom role with a name and color of your choice.", inline=False)
+        embed.set_footer(text="To redeem, please contact cumdev.")
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
