@@ -73,8 +73,12 @@ class slotsCog(commands.Cog, name="slots"):
         self.bot = bot
 
     @commands.command(name="spin")
-    async def spin(self, ctx):
-        cost = 25
+    async def spin(self, ctx, bet_multiplier: int = 1):
+        if bet_multiplier not in [1, 10, 100]:
+            await ctx.reply("Invalid bet multiplier! Please choose 1, 10, or 100.")
+            return
+
+        cost = 25 * bet_multiplier
         
         # Check balance
         async with aiosqlite.connect(DB_PATH) as db:
@@ -106,13 +110,13 @@ class slotsCog(commands.Cog, name="slots"):
         ascii_header = "   ˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍ\n /                                 \\\n|   CARL MACHINE  |\n|=================|"
         ascii_footer = "|=================|\n \ \ˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍˍ /"
 
-        msg = await ctx.reply("🎰 Spinning...")
+        msg = await ctx.reply(f"🎰 Spinning... (Cost: {cost} Tokens)")
         
         final_grid = []
         for i in range(5):
             grid = [[random.choice(all_symbols) for _ in range(5)] for _ in range(3)]
             grid_display = "\n".join(["| " + " ".join(row) + " |" for row in grid])
-            await msg.edit(content=f"**SPINNING...**\n{ascii_header}\n{grid_display}\n{ascii_footer}")
+            await msg.edit(content=f"**SPINNING...** (Cost: {cost})\n{ascii_header}\n{grid_display}\n{ascii_footer}")
             await asyncio.sleep(1)
             final_grid = grid
 
@@ -150,7 +154,7 @@ class slotsCog(commands.Cog, name="slots"):
                 if check_symbol in high_tier: multiplier = 2
                 elif check_symbol in jackpot_tier: multiplier = 10
                 
-                win = base_payout * multiplier
+                win = base_payout * multiplier * bet_multiplier
                 total_payout += win
                 winnings_text.append(f"Line {line_idx+1}: {count}x {check_symbol} (+{win})")
 
