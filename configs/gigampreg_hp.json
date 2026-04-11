@@ -1,0 +1,8 @@
+{
+  "name": "gigampreg",
+  "hp": 50000,
+  "max_hp": 50000,
+  "last_updated": "2025-12-21T11:54:55.006730Z",
+  "notes": "Boss HP for gigampreg; updated by bot commands when attacks occur.",
+  "old_hp": 50000
+}

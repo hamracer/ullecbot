@@ -1,5 +1,7 @@
 from time import sleep
+import datetime
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 import json, random
 import asyncio
@@ -11,14 +13,22 @@ import pandas as pd
 import io
 from io import BytesIO
 
+import os
+DB_PATH = '/opt/data/ullecbot/db/rolls.db' if os.path.exists('/opt/data/ullecbot/db') and os.access('/opt/data/ullecbot/db', os.W_OK) else 'db/rolls.db'
+
 gbfgid = '339155308767215618'
 borpaspin = '<a:borpaspin:905835451204640829>'
 goldborpaspin = '<a:goldborpaspin:906324859007696916>'
+rainbowborpaspin = '<a:rainbowborpaspin:1447183660640894996>'
 plusone = '<:plusone:899989682555854868>'
-loading = '<a:loading:902407104499974144>'
-tick = '<:tick:902416135683702794>'
+loading = '<a:loading:1446857889711915144>'
+tick = '✅'
+cross = '❌'
 umproll = '<a:umproll:903953063746883614>'
-channellist = [262371002577715201, 853625002779869204, 562352225423458326]
+
+
+channellist = [1446500430954631359]
+channellist = [1446500430954631359,1447552037100453909]
 mainchannel = [9262371002577715201]
 data =[]  
 
@@ -26,77 +36,48 @@ mainch = True
 
   
 
-class CustomCooldown:
-    def __init__(self, rate, per, alter_rate, alter_per, bucket, *, elements):
-
-        #def shared_cooldown(rate, per, type=commands.BucketType.default):
-        #    cooldown = commands.Cooldown(rate, per, type=type)
-        #    def decorator(func):
-        #        if isinstance(func, discord.ext.commands.Command):
-        #            func._buckets = commands.CooldownMapping(cooldown)
-        #        else:
-        #            func.__commands_cooldown__ = cooldown
-        #        return func
-        #    return decorator    
-
-        self.elements = elements
-        # Default mapping is the default cooldown
-        self.default_mapping = commands.CooldownMapping.from_cooldown(rate, per, bucket)
-        # Alter mapping is the alternative cooldown
-        self.alter_mapping = commands.CooldownMapping.from_cooldown(alter_rate, alter_per, bucket)
-        # Copy of the original BucketType
-        self._bucket_type = bucket
-
-    def __call__(self, ctx):
-        key = self.alter_mapping._bucket_key(ctx.message)
-
-        if self._bucket_type is commands.BucketType.member: # `BucketType.member` returns a tuple
-            key = key[1] # The second (last) value is the member ID, the first one is the guild ID
-
-        if key in self.elements:
-            # If the key is in the elements, the bucket will be taken from the alternative cooldown
-            bucket = self.alter_mapping.get_bucket(ctx.message)
-        else:
-            # If not, from the default cooldown
-            bucket = self.default_mapping.get_bucket(ctx.message)
-
-        # Getting the ratelimit left (can be None)
-        retry_after = bucket.update_rate_limit()
-
-        if retry_after: # If the command is on cooldown, raising the error
-            raise commands.CommandOnCooldown(bucket, retry_after)
-        return True
-
-    
 
 
-async def rolling(user):
-    db = await aiosqlite.connect('rolls.db')
-    theroll = random.randint(1,200)
-    if theroll >199:
-        roll = goldborpaspin
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user])
-        await db.execute("UPDATE rolltable SET goldborpaspins=goldborpaspins+1 WHERE user=?",[user])
-        await db.commit()
-        await db.close()
-        return roll
-    if theroll >= 188:
-        roll = borpaspin
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user])
-        await db.execute("UPDATE rolltable SET borpas=borpas+1 WHERE user=?",[user])
-        await db.commit()
-        await db.close()
-        return roll
+async def rolling(user_id, multiplier=1, db=None):
+    if db is None:
+        conn = await aiosqlite.connect(DB_PATH)
     else:
-        roll = "cum"
-        await db.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user])
-        await db.execute("UPDATE rolltable SET cums=cums+1 WHERE user=?",[user])
-        await db.commit()
-        await db.close()
+        conn = db
+
+    try:
+        cursor = await conn.execute("SELECT boss_kills FROM rolltable WHERE user=?", [user_id])
+        result = await cursor.fetchone()
+        boss_kills = result[0] if result and result[0] is not None else 0
+
+        # 0.1% bonus per kill, so 0.001
+        bonus_chance = boss_kills
+
+        theroll = random.randint(1,1000)
+        if theroll <= (1 * multiplier) + bonus_chance:
+            roll = rainbowborpaspin
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET rainbowborpaspins=rainbowborpaspins+1 WHERE user=?",[user_id])
+        elif theroll <= (5 * multiplier) + bonus_chance:
+            roll = goldborpaspin
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET goldborpaspins=goldborpaspins+1 WHERE user=?",[user_id])
+        elif theroll <= (60 * multiplier) + bonus_chance:
+            roll = borpaspin
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET borpas=borpas+1 WHERE user=?",[user_id])
+        else:
+            roll = "cum"
+            await conn.execute("UPDATE rolltable SET totalrolls=totalrolls+1 WHERE user=?",[user_id])
+            await conn.execute("UPDATE rolltable SET cums=cums+1 WHERE user=?",[user_id])
+        
+        await conn.commit()
         return roll
+    finally:
+        if db is None:
+            await conn.close()
     
 async def dbget():
-    db = await aiosqlite.connect('rolls.db')
+    db = await aiosqlite.connect(DB_PATH)
     cursor = await db.execute('SELECT user, rolls FROM rolltable')
     rows = await cursor.fetchall()
     data = [{'user': a,'rolls': b,} for a,b in rows]
@@ -104,11 +85,126 @@ async def dbget():
     await db.close()
     return data
 
+class ExchangeModal(discord.ui.Modal, title="Exchange Borpas"):
+    def __init__(self, borpa_type, rate, db_path):
+        super().__init__()
+        self.borpa_type = borpa_type
+        self.rate = rate
+        self.db_path = db_path
+        
+    amount = discord.ui.TextInput(label="Amount", placeholder="Enter amount or 'all'")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            val = self.amount.value.lower()
+            user_id = interaction.user.id
+            
+            async with aiosqlite.connect(self.db_path) as db:
+                # Get current balance
+                cursor = await db.execute(f"SELECT {self.borpa_type} FROM rolltable WHERE user=?", (user_id,))
+                row = await cursor.fetchone()
+                
+                if not row:
+                    await interaction.response.send_message("You don't have a profile yet. Use .cum first.", ephemeral=True)
+                    return
+                
+                current_borpas = row[0]
+                
+                if val == 'all':
+                    exchange_amount = current_borpas
+                else:
+                    try:
+                        exchange_amount = int(val)
+                    except ValueError:
+                        await interaction.response.send_message("Invalid amount.", ephemeral=True)
+                        return
+                
+                if exchange_amount <= 0:
+                    await interaction.response.send_message("Amount must be positive.", ephemeral=True)
+                    return
+                
+                if current_borpas < exchange_amount:
+                    await interaction.response.send_message(f"You only have {current_borpas} {self.borpa_type}.", ephemeral=True)
+                    return
+                
+                coins_gained = exchange_amount * self.rate
+                
+                # Update DB
+                await db.execute(f"UPDATE rolltable SET {self.borpa_type} = {self.borpa_type} - ? WHERE user=?", (exchange_amount, user_id))
+                
+                # Ensure tokens table exists
+                await db.execute("CREATE TABLE IF NOT EXISTS tokens (user INTEGER PRIMARY KEY, amount INTEGER)")
+                
+                # Add tokens
+                await db.execute("INSERT INTO tokens (user, amount) VALUES (?, ?) ON CONFLICT(user) DO UPDATE SET amount = amount + ?", (user_id, coins_gained, coins_gained))
+                
+                await db.commit()
+                
+            await interaction.response.send_message(f"Exchanged {exchange_amount} {self.borpa_type} for {coins_gained} Tokens!", ephemeral=True)
+            
+        except Exception as e:
+            await interaction.response.send_message(f"Error: {e}", ephemeral=True)
+
+class ExchangeView(discord.ui.View):
+    def __init__(self, db_path):
+        super().__init__()
+        self.db_path = db_path
+
+    @discord.ui.select(placeholder="Select borpa to exchange...", options=[
+        discord.SelectOption(label="Borpaspin", value="borpas", description="Rate: 1 Tokens"),
+        discord.SelectOption(label="Gold Borpaspin", value="goldborpaspins", description="Rate: 10 Tokens"),
+        discord.SelectOption(label="Rainbow Borpaspin", value="rainbowborpaspins", description="Rate: 100 Tokens"),
+    ])
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+        rates = {"borpas": 1, "goldborpaspins": 10, "rainbowborpaspins": 100}
+        borpa_type = select.values[0]
+        await interaction.response.send_modal(ExchangeModal(borpa_type, rates[borpa_type], self.db_path))
+
 class rollsCog(commands.Cog, name="rolls"):
     def __init__(self, bot):
         self.bot = bot
         self.freecummies.start()
+        self.boss_regen.start()
         
+    async def update_daily(self, ctx, user_id, action):
+        today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS dailies (
+                    user INTEGER PRIMARY KEY,
+                    date TEXT,
+                    cum INTEGER,
+                    cum10 INTEGER,
+                    cum2 INTEGER,
+                    claimed INTEGER
+                )
+            ''')
+            
+            cursor = await db.execute("SELECT date, claimed FROM dailies WHERE user=?", [user_id])
+            row = await cursor.fetchone()
+            
+            if not row or row[0] != today:
+                await db.execute("INSERT OR REPLACE INTO dailies (user, date, cum, cum10, cum2, claimed) VALUES (?, ?, 0, 0, 0, 0)", (user_id, today))
+                claimed = 0
+            else:
+                claimed = row[1]
+            
+            if claimed:
+                return
+
+            await db.execute(f"UPDATE dailies SET {action}=1 WHERE user=?", [user_id])
+            
+            cursor = await db.execute("SELECT cum, cum10, cum2 FROM dailies WHERE user=?", [user_id])
+            status = await cursor.fetchone()
+            
+            if status and all(status):
+                await db.execute("UPDATE rolltable SET rolls=rolls+500 WHERE user=?", [user_id])
+                await db.execute("UPDATE dailies SET claimed=1 WHERE user=?", [user_id])
+                await db.commit()
+                await ctx.send(f"**DAILY COMPLETE!** {ctx.author.mention} received 500 rolls!")
+            else:
+                await db.commit()
+
     
     #DEBBUGGING STUFF
 
@@ -116,40 +212,48 @@ class rollsCog(commands.Cog, name="rolls"):
     @commands.has_role("cumdev")
     async def ct(self,ctx):
         if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
-            async with aiosqlite.connect('rolls.db') as db:
-                    await db.execute("CREATE TABLE rolltable (user INT UNIQUE, alias TEXT, rolls INT, totalrolls INT, cums INT, borpas INT, goldborpaspins INT)")
+            async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute("CREATE TABLE rolltable (user INT UNIQUE, alias TEXT, rolls INT, totalrolls INT, cums INT, borpas INT, goldborpaspins INT, rainbowborpaspins INT, boss_kills INT);")
                     await db.commit()
                     print("table created")
+                    await ctx.message.add_reaction(tick)
+        else: 
+            await ctx.message.add_reaction(cross)
 
     @commands.command()
     @commands.has_role("cumdev")
     async def dt(self,ctx):
         if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
-            async with aiosqlite.connect('rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("DROP TABLE rolltable")
                 await db.commit()
+                await ctx.message.add_reaction(tick)
                 print("table dropped")
+        else: 
+            await ctx.message.add_reaction(cross)
 
     @commands.command()
     @commands.has_role("cumdev")
     async def setroll(self,ctx, arg1, arg2):
         if str(ctx.channel.id) == '853625002779869204' or '562352225423458326':
-            async with aiosqlite.connect('rolls.db') as db:
+            async with aiosqlite.connect(DB_PATH) as db:
                 try:
                     await db.execute("UPDATE rolltable SET rolls=? WHERE user=?",(arg1,arg2))
                     await db.commit()
                     print("set rolls to " + arg1)
+                    await ctx.message.add_reaction(tick)
                 except:
                     print("something went wrong")
+                    await ctx.message.add_reaction(cross)
 
     #USER COMMANDS
     #ROLLS
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def cum(self, ctx):
         if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
+            await ctx.message.add_reaction(loading) 
             data = await dbget()
             playerid = ctx.author.id
             alias = ctx.author.name
@@ -158,39 +262,41 @@ class rollsCog(commands.Cog, name="rolls"):
                 print("player exists: " + str(playerid)) 
             else:
                 #add author to db
-                async with aiosqlite.connect('rolls.db') as db:
-                    await db.execute("INSERT INTO rolltable VALUES (?, ?, ?, 0, 0, 0, 0);", (playerid, alias, 11))
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute("INSERT INTO rolltable VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0);", (playerid, alias, 110))
                     await db.commit()
                     await ctx.reply("Look here everyone a new cummer!")
             #get updated db value
             data = await dbget()
             match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
             if int(match['rolls']) > 0:
-                async with aiosqlite.connect('rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-1 WHERE user=?",[playerid])
                     await db.commit()
-                    roll = await rolling(playerid)
+                    roll = await rolling(playerid, multiplier=1)
+                    await self.update_daily(ctx, playerid, 'cum')
                     sent = await ctx.reply(roll)
                     await asyncio.sleep(7)
                     await sent.delete()
-                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                    await ctx.message.add_reaction(emoji=tick) 
+                    await ctx.message.remove_reaction(loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.message.add_reaction(tick)
+                    await asyncio.sleep(3)
+                    await ctx.message.delete()
                     
             else: 
                 sent = await ctx.reply("u got no cums loser")
                 await asyncio.sleep(7)
                 await sent.delete()
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                await ctx.message.add_reaction(emoji=tick) 
-                
-    
-
+                await ctx.message.remove_reaction(loading, member=self.bot.get_user(562335932813017134)) 
+                await ctx.message.add_reaction(tick) 
+                await asyncio.sleep(3)
+                await ctx.message.delete()
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
+    @commands.cooldown(2, 15, commands.BucketType.guild)
     async def cum10(self, ctx):
         if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
+            await ctx.message.add_reaction(loading) 
             data = await dbget()
             playerid = ctx.author.id
             #check if author is in db
@@ -198,229 +304,190 @@ class rollsCog(commands.Cog, name="rolls"):
                 print("player exists: " + str(playerid)) 
             else:
                 await ctx.reply("u got no cums loser")
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134))
+                await ctx.message.remove_reaction(loading, member=self.bot.get_user(562335932813017134))
                 return
 
             #get updated db value
             data = await dbget()
             match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
             if int(match['rolls']) >= 10:
-                async with aiosqlite.connect('rolls.db') as db:
+                async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("UPDATE rolltable SET rolls=rolls-10 WHERE user=?",[playerid])
                     await db.commit()
+                    await self.update_daily(ctx, playerid, 'cum10')
                     totalrolls = []
                     embed = discord.Embed(title="Test your luck",color=0x9062d3)
                     embed.add_field(name="Rolls...", value="rolling...")
                     sent = await ctx.reply(embed=embed)
                     for i in range(10):
                         await asyncio.sleep(1)
-                        roll = await rolling(playerid)
+                        roll = await rolling(playerid, multiplier=1)
                         totalrolls.append(roll)
                         sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls).items())))
                         embed.set_field_at(0, name="Rolls...", value=sendies, inline=True)
                         await sent.edit(embed=embed)
                     await asyncio.sleep(7)
                     await sent.delete()
-                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                    await ctx.message.add_reaction(emoji=tick) 
+                    await ctx.message.remove_reaction(loading, member=self.bot.get_user(562335932813017134)) 
+                    await ctx.message.add_reaction(tick)
+                    await asyncio.sleep(3)
+                    await ctx.message.delete()
             else: 
                 sent = await ctx.reply("u dont got enough cums loser")
                 await asyncio.sleep(7)
                 await sent.delete()
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                await ctx.message.add_reaction(emoji=tick) 
+                await ctx.message.remove_reaction(loading, member=self.bot.get_user(562335932813017134)) 
+                await ctx.message.add_reaction(tick) 
+                await asyncio.sleep(3)
+                await ctx.message.delete()
 
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def howmanycumsdoihaveleft(self, ctx):
-        if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
-            playerid = ctx.author.id
-            data = await dbget()
-            try:
-                match = next((item for item in data if item['user'] == playerid), 'Nothing Found') 
-                sent = await ctx.reply("You have " + str(match['rolls']) + " cums left.")
-                await asyncio.sleep(7)
-                await sent.delete()
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                await ctx.message.add_reaction(emoji=tick) 
-            except:
-                sent = await ctx.reply("You're not on the cummies list, please cum once first.")
-                await asyncio.sleep(7)
-                await sent.delete()
-                await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                await ctx.message.add_reaction(emoji=tick) 
+    @commands.cooldown(1, 60, commands.BucketType.user)
+    async def bigcum(self, ctx):
+        """Rolls 100 times, but you have to win a coin flip first!"""
+        if ctx.channel.id not in channellist:
+            return
 
-    
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def donate(self, ctx, arg1):
-        if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
-            data = await dbget()
-            playerid = ctx.author.id
-            #match for if user has enough rolls
-            match = next((item for item in data if item['user'] == playerid), 'Nothing Found') 
-            if int(match['rolls']) >= int(arg1):
-                donateid = ctx.message.mentions[0].id
-                match2 = next((item for item in data if item['user'] == donateid), 'Nothing Found')
-                if int(match2['user']) == donateid:
-                    db = await aiosqlite.connect('rolls.db')
-                    await db.execute("UPDATE rolltable SET rolls=rolls-? WHERE user=?",(arg1,playerid))
-                    await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg1,donateid))
-                    await db.commit()
-                    sent = await ctx.reply("You have donated " + str(arg1) + " cum to " + self.bot.get_user(donateid).name)
-                    await asyncio.sleep(7)
-                    await sent.delete()
-                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                    await ctx.message.add_reaction(emoji=tick) 
-                    await db.close()
-                else:
-                    print("something went wrong1")
-            else:
-                    print("something went wrong2")
-    #GAMES
-    # 3d6
+        await ctx.message.add_reaction(loading)
+        data = await dbget()
+        playerid = ctx.author.id
+        alias = ctx.author.name
 
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def dice(self, ctx, arg):
-        if ctx.channel.id in channellist:
-            try:
-                data = await dbget()
-                await ctx.message.add_reaction(emoji=loading) 
-                #try:
-                playerid = ctx.author.id
-                playername = ctx.author.name
-                match = next((item for item in data if item['user'] == playerid), 'Nothing Found')
-                if int(match['rolls']) >= int(arg):
-                    #gamba
-                    db = await aiosqlite.connect('rolls.db')
-                    await db.execute("UPDATE rolltable SET rolls=rolls-? WHERE user=?",(arg,playerid))
-                    await db.commit()
-                    embed = discord.Embed(title=umproll + " Roll the dice! " + umproll,color=0x9062d3)
-                    embed.add_field(name="Ullecbot", value="rolling...", inline=True)
-                    embed.add_field(name=playername, value="rolling...", inline=True)
-                    sent = await ctx.reply(embed=embed)
+        # Check if author is in db
+        if not any(i['user'] == playerid for i in data):
+            await ctx.reply("u got no cums loser, use .cum first")
+            await ctx.message.remove_reaction(loading, self.bot.user)
+            return
 
-                    playerrolls=[]
-                    botrolls=[]
-                    for i in range(3):
-                        await asyncio.sleep(1)
-                        x = random.randint(1,6)
-                        y = random.randint(1,6)
-                        botrolls.append(x)
-                        playerrolls.append(y)
-                        displaybot = ', '.join(map(str,botrolls))
-                        displayplayer = ', '.join(map(str,playerrolls))
-                        embed.set_field_at(0, name="Ullecbot", value=displaybot, inline=True)
-                        embed.set_field_at(1, name=playername, value=displayplayer, inline=True)
-                        await sent.edit(embed=embed)
-                    botsum = sum(botrolls)
-                    playersum = sum(playerrolls)
-                    if botsum > playersum:
-                        resultstring = "You lose !! ( " + str(botsum) + " > " +str(playersum) + " )"
-                        embed.add_field(name=resultstring, value="You lost "+ arg +" rolls", inline=False)
-                        winner = self.bot.get_user(562335932813017134)
-                        embed.set_thumbnail(url=winner.avatar_url)
-                    if playersum > botsum:
-                        resultstring = "You win!! ( " + str(botsum) + " < " +str(playersum) + " )"
-                        embed.add_field(name=resultstring, value="You win "+ arg +" rolls", inline=False)
-                        arg = int(arg) + int(arg)
-                        await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
-                        winner = self.bot.get_user(ctx.author.id)
-                        embed.set_thumbnail(url=winner.avatar_url)
-                    if botsum == playersum:
-                        resultstring = "You draw!! ( " + str(botsum) + " = " +str(playersum) + " )"
-                        embed.add_field(name=resultstring, value="Your rolls have been returned", inline=False)
-                        await db.execute("UPDATE rolltable SET rolls=rolls+? WHERE user=?",(arg,playerid))
-                        embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/906711134030155826/906885383642558464/611919839396757513.png')
-                    await db.commit()
-                    await sent.edit(embed=embed)
-                    await asyncio.sleep(7)
-                    await sent.delete()
-                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                    await ctx.message.add_reaction(emoji=tick) 
-                    await db.close()
-                    
-                else:
-                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                    await ctx.reply("You dont have enough rolls for this.")
-                    await ctx.message.add_reaction(emoji=tick) 
-                    
-            except:
-                    sent = await ctx.reply("You dont have enough rolls for this.")
-                    await asyncio.sleep(7)
-                    await sent.delete()
-                    await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-                    await ctx.message.add_reaction(emoji=tick) 
-                    
-            #except:
-            #    print("something went wrong")
-
-
-    # br?
-    
-
-
-    #STATS
-
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def cumsavers(self, ctx):
-        if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
-            db = await aiosqlite.connect('rolls.db')
-            cursor = await db.execute('SELECT alias, rolls FROM rolltable ORDER BY rolls DESC LIMIT 5')
-            rows = await cursor.fetchall()
-            ctopid = await db.execute("SELECT user FROM rolltable ORDER BY rolls DESC LIMIT 1")
-            topid = await ctopid.fetchone()
-            top5 = [{'user': a,'rolls': b,} for a,b in rows]
-            display = [("%s: %s cums saved"%(item['user'],item['rolls'])) for item in top5]
-            sep = '\n'
-            embed = discord.Embed(title="Top Cum Savers!",color=0x9062d3)
-            top = self.bot.get_user(topid[0])
-            embed.set_thumbnail(url=top.avatar_url)
-            embed.add_field(name="​", value=sep.join(display), inline=False)
-            sent = await ctx.send(embed=embed)
-            await db.commit()
+        # Get updated db value and check rolls
+        data = await dbget()
+        match = next((item for item in data if item['user'] == playerid), None)
+        if not match or int(match['rolls']) < 100:
+            sent = await ctx.reply("u dont got enough cums for this (100 required)")
+            await ctx.message.remove_reaction(loading, self.bot.user)
             await asyncio.sleep(7)
             await sent.delete()
-            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-            await ctx.message.add_reaction(emoji=tick) 
-            await db.close()
+            await ctx.message.delete()
+            return
 
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def biggestcummers(self, ctx):
-        if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
-            db = await aiosqlite.connect('rolls.db')
-            cursor = await db.execute('SELECT alias, cums FROM rolltable ORDER BY cums DESC LIMIT 5')
-            rows = await cursor.fetchall()
-            ctopid = await db.execute("SELECT user FROM rolltable ORDER BY cums DESC LIMIT 1")
-            topid = await ctopid.fetchone()
-            top5 = [{'user': a,'cums': b,} for a,b in rows]
-            display = [("%s: %s cums spilled"%(item['user'],item['cums'])) for item in top5]
-            sep = '\n'
-            embed = discord.Embed(title="Top Cummers!",color=0x9062d3)
-            top = self.bot.get_user(topid[0])
-            embed.set_thumbnail(url=top.avatar_url)
-            embed.add_field(name="​", value=sep.join(display), inline=False)
-            sent = await ctx.send(embed=embed)
-            await db.commit()
+        # --- Coin Flip ---
+        flip_msg = await ctx.reply("This is a big one. You're betting 100 rolls. Call it in the air. `heads` or `tails`? (15s to answer)")
+
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() in ['heads', 'tails']
+
+        try:
+            choice_msg = await self.bot.wait_for('message', check=check, timeout=15.0)
+            user_choice = choice_msg.content.lower()
+            try:
+                await choice_msg.delete()
+            except discord.Forbidden:
+                pass  # Can't delete messages, oh well
+        except asyncio.TimeoutError:
+            await flip_msg.edit(content="Too slow! The chance is gone. No cums lost.")
+            await ctx.message.remove_reaction(loading, self.bot.user)
             await asyncio.sleep(7)
-            await sent.delete()
-            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-            await ctx.message.add_reaction(emoji=tick) 
-            await db.close()
-    
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def borpacheck(self, ctx):
-        if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
-            db = await aiosqlite.connect('rolls.db')
+            await flip_msg.delete()
+            await ctx.message.delete()
+            return
+
+        # User made a choice, so they are committed. Subtract rolls.
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE rolltable SET rolls=rolls-100 WHERE user=?", [playerid])
+            await db.commit()
+
+        coin_result = random.choice(['heads', 'tails'])
+
+        if user_choice != coin_result:
+            # --- Lose the flip ---
+            await flip_msg.edit(content=f"It was **{coin_result}**. You lose your 100 cum bet. L")
+            
+            # Simulate what they would have won
+            async with aiosqlite.connect(DB_PATH) as db:
+                cursor = await db.execute("SELECT boss_kills FROM rolltable WHERE user=?", [playerid])
+                result = await cursor.fetchone()
+                boss_kills = result[0] if result and result[0] is not None else 0
+            
+            bonus_chance = boss_kills
+            lost_rolls = []
+            for _ in range(100):
+                theroll = random.randint(1,1000)
+                if theroll <= 2 + bonus_chance:
+                    lost_rolls.append(rainbowborpaspin)
+                elif theroll <= 10 + bonus_chance:
+                    lost_rolls.append(goldborpaspin)
+                elif theroll <= 120 + bonus_chance:
+                    lost_rolls.append(borpaspin)
+                else:
+                    lost_rolls.append("cum")
+            
+            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(lost_rolls).items())))
+            embed = discord.Embed(title="BIG CUM (LOST)", color=0xff0000, description=f"for {alias}")
+            embed.add_field(name="You would have won...", value=sendies, inline=False)
+            lost_msg = await ctx.send(embed=embed)
+
+            await ctx.message.remove_reaction(loading, self.bot.user)
+            await ctx.message.add_reaction(cross)
+            await asyncio.sleep(10)
+            await flip_msg.delete()
+            await lost_msg.delete()
+            await ctx.message.delete()
+            return
+
+        # --- Win the flip ---
+        await flip_msg.edit(content=f"You called it! It was **{coin_result}**. Here we go!")
+
+        totalrolls_list = []
+        embed = discord.Embed(title="BIG CUM", color=0x9062d3, description=f"for {alias}")
+        embed.add_field(name="Rolls... (0/100)", value="rolling...")
+        roll_msg = await ctx.send(embed=embed)
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            for i in range(10):  # 10 batches
+                for _ in range(10):  # 10 rolls per batch
+                    roll = await rolling(playerid, multiplier=2, db=db)
+                    totalrolls_list.append(roll)
+
+                sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
+                embed.set_field_at(0, name=f"Rolls... ({len(totalrolls_list)}/100)", value=sendies, inline=False)
+                await roll_msg.edit(embed=embed)
+                if i < 9:  # Don't sleep on the last iteration
+                    await asyncio.sleep(1.5)
+
+        # Check for triple borpa bonus
+        counts = Counter(totalrolls_list)
+        if counts[borpaspin] > 0 and counts[goldborpaspin] > 0 and counts[rainbowborpaspin] > 0:
+            borpa_count = counts[borpaspin]
+            gold_count = counts[goldborpaspin]
+            
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("UPDATE rolltable SET borpas=borpas-?, goldborpaspins=goldborpaspins-?, rainbowborpaspins=rainbowborpaspins+? WHERE user=?", (borpa_count, gold_count, borpa_count + gold_count, playerid))
+                await db.commit()
+            
+            # Update list for display
+            totalrolls_list = [rainbowborpaspin if x in (borpaspin, goldborpaspin) else x for x in totalrolls_list]
+            
+            sendies = (', '.join('%s x%d' % (item, count) for item, count in sorted(Counter(totalrolls_list).items())))
+            embed.set_field_at(0, name=f"Rolls... ({len(totalrolls_list)}/100) - TRIPLE BORPA BONUS!", value=sendies, inline=False)
+            await roll_msg.edit(embed=embed)
+            await ctx.send(f"**TRIPLE BORPA!** All borpas converted to {rainbowborpaspin}!")
+
+        # --- Cleanup ---
+        await ctx.message.remove_reaction(loading, self.bot.user)
+        await ctx.message.add_reaction(tick)
+        await asyncio.sleep(15)  # a bit longer to see results
+
+        await roll_msg.delete()
+        await flip_msg.delete()
+        await ctx.message.delete()
+
+    @app_commands.command(name="borpacheck", description="check the top borpaspinners")
+    async def borpacheck(self, interaction: discord.Interaction):
+        try: 
+            if interaction.channel_id not in channellist:
+                await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+                return
+            db = await aiosqlite.connect(DB_PATH)
             cursor = await db.execute('SELECT alias, borpas FROM rolltable ORDER BY borpas DESC LIMIT 5')
             rows = await cursor.fetchall()
             ctopid = await db.execute("SELECT user FROM rolltable ORDER BY borpas DESC LIMIT 1")
@@ -430,22 +497,25 @@ class rollsCog(commands.Cog, name="rolls"):
             sep = '\n'
             embed = discord.Embed(title="Top Borpaspinners!",color=0x9062d3)
             top = self.bot.get_user(topid[0])
-            embed.set_thumbnail(url=top.avatar_url)
+            embed.set_thumbnail(url=top.avatar.url)
             embed.add_field(name="​", value=sep.join(display), inline=False)
-            sent = await ctx.send(embed=embed)
-            await db.commit()
-            await asyncio.sleep(7)
-            await sent.delete()
-            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-            await ctx.message.add_reaction(emoji=tick) 
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             await db.close()
 
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def goldcheck(self, ctx):
-        if ctx.channel.id in channellist:
-            await ctx.message.add_reaction(emoji=loading) 
-            db = await aiosqlite.connect('rolls.db')
+        except Exception as e:
+            print("borpacheck error:", repr(e))
+            try:
+                await interaction.response.send_message("An internal error occurred.", ephemeral=True)
+            except:
+                pass
+
+    @app_commands.command(name="goldcheck", description="check the top gold borpaspinners")
+    async def goldcheck(self, interaction: discord.Interaction):
+        try: 
+            if interaction.channel_id not in channellist:
+                await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+                return
+            db = await aiosqlite.connect(DB_PATH)
             cursor = await db.execute('SELECT alias, goldborpaspins FROM rolltable ORDER BY goldborpaspins DESC LIMIT 5')
             rows = await cursor.fetchall()
             ctopid = await db.execute("SELECT user FROM rolltable ORDER BY goldborpaspins DESC LIMIT 1")
@@ -455,64 +525,117 @@ class rollsCog(commands.Cog, name="rolls"):
             sep = '\n'
             embed = discord.Embed(title="Top Gold Borpa Spinners!",color=0x9062d3)
             top = self.bot.get_user(topid[0])
-            embed.set_thumbnail(url=top.avatar_url)
+            embed.set_thumbnail(url=top.avatar.url)
             embed.add_field(name="​", value=sep.join(display), inline=False)
-            sent = await ctx.send(embed=embed)
-            await db.commit()
-            await asyncio.sleep(7)
-            await sent.delete()
-            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-            await ctx.message.add_reaction(emoji=tick) 
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             await db.close()
-
-    @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
-    async def cumstats(self, ctx, arg = 'poop'): 
-        if ctx.channel.id in channellist: 
-            if arg.isnumeric(): 
-                playerid = int(arg) 
-            elif ctx.message.mentions:
-                playerid = ctx.message.mentions[0].id 
-            else:
-                playerid = ctx.author.id
-            await ctx.message.add_reaction(emoji=loading) 
-            db = await aiosqlite.connect('rolls.db') 
-            cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE user=?',[playerid])
-            stats = await cursor.fetchall()
-            await db.commit()
-            stats = [{'rolls saved': b, 'total rolls': c, 'cums': d, 'borpaspins': e, 'goldborpaspins': f,} for b,c,d,e,f in stats]
-            listedstats =[] 
-            for i,o in stats[0].items():
-                line = i + ': ' + str(o)
-                listedstats.append(line)
-            #room for more stats later % etc
-
-            sep = '\n'
-            final = sep.join(listedstats)
-            member = self.bot.get_user(playerid)
-            titlestring = member.name + "'s stats"
-            embed = discord.Embed(title=titlestring,color=0x9062d3)
-            embed.set_thumbnail(url=member.avatar_url)
-            embed.add_field(name="​", value=final, inline=False)
-            sent = await ctx.send(embed=embed)
-            await asyncio.sleep(7)
-            await sent.delete()
-            await ctx.message.remove_reaction(emoji=loading, member=self.bot.get_user(562335932813017134)) 
-            await ctx.message.add_reaction(emoji=tick) 
-            await db.close()
+        
+        except Exception as e:
+            print("goldcheck error:", repr(e))
+            try:
+                await interaction.response.send_message("An internal error occurred.", ephemeral=True)
+            except:
+                pass
     
+# 1. Decorator uses app_commands, not commands
+    @app_commands.command(name="cumstats", description="check stats for yourself or another user")
+    @app_commands.describe(userid="user id or blank for yourself")
+    async def cumstats(self, interaction: discord.Interaction, userid: str = ""):
+        try:
+            if interaction.channel_id not in channellist:
+                await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+                return
+            if userid and userid.isnumeric():
+                try:
+                    playerid = int(userid)
+                except ValueError:
+                    await interaction.response.send_message("Invalid user ID provided.", ephemeral=True)
+                    return
+            else:
+                playerid = interaction.user.id
+
+            db = await aiosqlite.connect(DB_PATH)
+            # Fetch stats from rolltable
+            roll_cursor = await db.execute('SELECT rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins, boss_kills FROM rolltable WHERE user=?', [playerid])
+            roll_stats = await roll_cursor.fetchone()
+
+            if not roll_stats:
+                await db.close()
+                await interaction.response.send_message("User not found in database!", ephemeral=True)
+                return
+
+            # Fetch total damage from boss_damage table
+            damage_cursor = await db.execute('SELECT SUM(damage) FROM boss_damage WHERE user=?', [playerid])
+            total_damage_stat = await damage_cursor.fetchone()
+            total_damage = total_damage_stat[0] if total_damage_stat and total_damage_stat[0] is not None else 0
+            
+            borpacoins = 0
+            tokens = 0
+            try:
+                coin_cursor = await db.execute('SELECT amount FROM borpacoins WHERE user=?', [playerid])
+                coin_stat = await coin_cursor.fetchone()
+                borpacoins = coin_stat[0] if coin_stat else 0
+                
+                token_cursor = await db.execute('SELECT amount FROM tokens WHERE user=?', [playerid])
+                token_stat = await token_cursor.fetchone()
+                tokens = token_stat[0] if token_stat else 0
+            except Exception:
+                pass
+
+            await db.close()
+
+            stats_dict = {
+                'rolls saved': roll_stats[0], 'total rolls': roll_stats[1], 'cums': roll_stats[2], 
+                'borpaspins': roll_stats[3], 'goldborpaspins': roll_stats[4], 'rainbowborpaspins': roll_stats[5],
+                'boss_kills': roll_stats[6], 'total_damage_done': f"{total_damage:,}", 
+                'borpacoins': f"{borpacoins:,}", 'tokens': f"{tokens:,}"
+            }
+            
+            total_borpas = roll_stats[3] + roll_stats[4] + roll_stats[5]
+            stats_dict['damage_per_borpa'] = f"{total_damage / total_borpas:,.2f}" if total_borpas > 0 else "0.00"
+
+            member = self.bot.get_user(playerid)
+            listedstats = [f"**{k.replace('_', ' ').title()}**: {v}" for k,v in stats_dict.items()]
+            final = "\n".join(listedstats)
+            embed = discord.Embed(title=f"{member.name}'s stats", color=0x9062d3)
+            embed.set_thumbnail(url=member.display_avatar.url)
+            embed.add_field(name="​", value=final, inline=False)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            print("cumstats error:", repr(e))
+            try:
+                await interaction.response.send_message("An internal error occurred.", ephemeral=True)
+            except:
+                pass
+
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def pt(self, ctx): 
         if ctx.channel.id in channellist: 
-            db = await aiosqlite.connect('rolls.db')
-            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE totalrolls>9')
+            db = await aiosqlite.connect(DB_PATH)
+            # Get rolls data
+            cursor = await db.execute('SELECT user, alias, rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins FROM rolltable WHERE totalrolls>9')
             stats = await cursor.fetchall()
+
+            # Get spent borpas from boss_damage table
+            spent_cursor = await db.execute("SELECT user, roll_type FROM boss_damage WHERE roll_type IN ('borpaspin', 'gold', 'rainbow')")
+            spent_data = await spent_cursor.fetchall()
             await db.close()
-            stats = [{'name': a, 'rolls': b, 'total rolls': c, 'cums': d, 'total borpas': e+f, 'percent': round((e+f)/c*100, 2)} for a,b,c,d,e,f in stats]
-            adder = {'name': 'Likely Rate', 'rolls': '0','total rolls': 100, 'cums': 96, 'total borpas': 6, 'percent': 6}
-            stats.append(adder)
-            newlist = sorted(stats, key=lambda d: d['percent'])
+
+            # Count spent borpas per user
+            spent_counts = Counter(row[0] for row in spent_data if row[1] in ('borpaspin', 'gold', 'rainbow'))
+
+            processed_stats = []
+            for user_id, alias, rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins in stats:
+                borpas_earned = borpas + goldborpaspins + rainbowborpaspins
+                borpas_spent = spent_counts.get(user_id, 0)
+                total_borpas_obtained = borpas_earned + borpas_spent
+                percent = round((total_borpas_obtained / totalrolls) * 100, 2) if totalrolls > 0 else 0
+                processed_stats.append({'name': alias, 'rolls': rolls, 'total rolls': totalrolls, 'cums': cums, 'total borpas': total_borpas_obtained, 'rainbow borpas': rainbowborpaspins, 'percent': percent})
+
+            adder = {'name': 'Likely Rate', 'rolls': '0','total rolls': 100, 'cums': 96, 'total borpas': 6, 'rainbow borpas': 0, 'percent': 6}
+            processed_stats.append(adder)
+            newlist = sorted(processed_stats, key=lambda d: d['percent'])
             df = pd.DataFrame(newlist)
             fig, ax = plt.subplots()
             plt.style.use('ggplot')
@@ -531,73 +654,281 @@ class rollsCog(commands.Cog, name="rolls"):
                 image_binary.seek(0)
                 await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
 
+
     @commands.command()
-    @commands.check(CustomCooldown(2, 30, 1, 0, commands.BucketType.channel, elements=[853625002779869204,562352225423458326]))
     async def pt2(self, ctx): 
         if ctx.channel.id in channellist: 
-            db = await aiosqlite.connect('rolls.db')
-            cursor = await db.execute('SELECT alias, rolls, totalrolls, cums, borpas, goldborpaspins FROM rolltable WHERE totalrolls>9')
+            db = await aiosqlite.connect(DB_PATH)
+            # Get rolls data
+            cursor = await db.execute('SELECT user, alias, rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins FROM rolltable WHERE totalrolls>9')
             stats = await cursor.fetchall()
+
+            # Get spent borpas from boss_damage table
+            spent_cursor = await db.execute("SELECT user, roll_type FROM boss_damage WHERE roll_type IN ('borpaspin', 'gold', 'rainbow')")
+            spent_data = await spent_cursor.fetchall()
             await db.close()
-            stats = [{'name': a, 'rolls': b, 'total rolls': c, 'cums': d, 'total borpas': e+f, 'percent': round((e+f)/c*100, 2)} for a,b,c,d,e,f in stats]
-            newlist = sorted(stats, key=lambda d: d['percent'])
-            df = pd.DataFrame(newlist)
-            fig, ax = plt.subplots()
+
+            # Count spent borpas per user
+            spent_counts = Counter(row[0] for row in spent_data if row[1] in ('borpaspin', 'gold', 'rainbow'))
+
+            processed_stats = []
+            for user_id, alias, rolls, totalrolls, cums, borpas, goldborpaspins, rainbowborpaspins in stats:
+                borpas_earned = borpas + goldborpaspins + rainbowborpaspins
+                borpas_spent = spent_counts.get(user_id, 0)
+                total_borpas_obtained = borpas_earned + borpas_spent
+                percent = round((total_borpas_obtained / totalrolls) * 100, 2) if totalrolls > 0 else 0
+                processed_stats.append({'name': alias, 'rolls': rolls, 'total rolls': totalrolls, 'cums': cums, 'total borpas': total_borpas_obtained, 'rainbow borpas': rainbowborpaspins, 'percent': percent})
+            df = pd.DataFrame(processed_stats)
+            # Increase figure size for better readability
+            fig, ax = plt.subplots(figsize=(16, 10))
             plt.style.use('ggplot')
             clrs = ['c']
+            
+            # Add a horizontal line for the expected rate and a grid for clarity
             ax.axhline(y=6,color='r',linestyle='-')
+            ax.grid(True, which='both', linestyle='--', linewidth=0.5)
             ax.scatter(df['total rolls'], df['percent'], color=clrs)
+            
             fmt = '%.0f%%' # Format you want the ticks, e.g. '40%'
-            xticks = mtick.FormatStrFormatter(fmt)
-            ax.yaxis.set_major_formatter(xticks)
+            yticks = mtick.FormatStrFormatter(fmt)
+            ax.yaxis.set_major_formatter(yticks)
+            
             names = df['name'].tolist()
             xas = df['total rolls'].tolist()
             yas = df['percent'].tolist()
 
             for i, txt in enumerate(names):
-                ax.annotate(txt, (xas[i], yas[i]))
+                # Annotate with a slight offset and smaller font to improve readability
+                ax.annotate(txt, (xas[i], yas[i]), textcoords="offset points", xytext=(0,5), ha='center', fontsize=8)
             
             plt.title('Rates vs Total Rolls')
             plt.ylabel('Borpa Rates')
-            plt.xlabel('Totall Rolls')
+            plt.xlabel('Total Rolls')
+            plt.tight_layout() # Adjust layout to prevent labels from being cut off
+            
+            with io.BytesIO() as image_binary:
+                plt.savefig(image_binary)
+                image_binary.seek(0)
+                await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
+
+    @commands.command()
+    async def dpb(self, ctx):
+        if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(loading)
+            db = await aiosqlite.connect(DB_PATH)
+
+            # Get all user stats from rolltable
+            cursor = await db.execute('SELECT user, alias, borpas, goldborpaspins, rainbowborpaspins FROM rolltable')
+            stats = await cursor.fetchall()
+
+            # Get total damage and spent borpas for all users
+            damage_cursor = await db.execute("SELECT user, SUM(damage), roll_type FROM boss_damage GROUP BY user, roll_type")
+            damage_data = await damage_cursor.fetchall()
+            await db.close()
+
+            # Process damage and spent borpas
+            user_damage = Counter()
+            spent_borpas = Counter()
+            for user_id, damage, roll_type in damage_data:
+                user_damage[user_id] += damage
+                if roll_type in ('borpaspin', 'gold', 'rainbow'):
+                    spent_borpas[user_id] += 1
+
+            processed_stats = []
+            for user_id, alias, borpas, goldborpaspins, rainbowborpaspins in stats:
+                # Calculate total borpas (unspent + spent)
+                unspent = borpas + goldborpaspins + rainbowborpaspins
+                spent = spent_borpas.get(user_id, 0)
+                total_borpas = unspent + spent
+                
+                total_damage = user_damage.get(user_id, 0)
+
+                # Calculate damage per borpa
+                dpb = (total_damage / total_borpas) if total_borpas > 0 else 0
+                if dpb > 0: # Only include users with a DPB greater than 0
+                    processed_stats.append({'name': alias, 'dpb': dpb})
+
+            if not processed_stats:
+                await ctx.reply("No users with damage per borpa to display.")
+                await ctx.message.remove_reaction(loading, member=self.bot.user)
+                return
+
+            # Create and sort DataFrame
+            df = pd.DataFrame(processed_stats).sort_values(by='dpb', ascending=True)
+
+            # Generate Plot
+            fig, ax = plt.subplots(figsize=(12, 8))
+            plt.style.use('ggplot')
+            ax.barh(df['name'], df['dpb'], color='skyblue')
+            ax.xaxis.set_major_formatter(mtick.StrMethodFormatter('{x:,.0f}'))
+            plt.title('Damage Per Borpa (DPB) Ranking')
+            plt.xlabel('Damage Per Borpa')
+            plt.ylabel('Users')
+            plt.tight_layout()
+
+            with io.BytesIO() as image_binary:
+                plt.savefig(image_binary)
+                image_binary.seek(0)
+                await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
+            
+            await ctx.message.remove_reaction(loading, member=self.bot.user)
+
+    @commands.command()
+    async def top3(self, ctx):
+        if ctx.channel.id in channellist:
+            await ctx.message.add_reaction(loading)
+            db = await aiosqlite.connect(DB_PATH)
+
+            # Query to get top 3 users by total damage
+            cursor = await db.execute("""
+                SELECT
+                    t2.alias,
+                    SUM(t1.damage) AS total_damage
+                FROM
+                    boss_damage AS t1
+                JOIN
+                    rolltable AS t2 ON t1.user = t2.user
+                GROUP BY
+                    t1.user
+                ORDER BY
+                    total_damage DESC
+                LIMIT 3
+            """)
+            top_damage_data = await cursor.fetchall()
+            await db.close()
+
+            if not top_damage_data:
+                await ctx.reply("No damage data available to display.")
+                await ctx.message.remove_reaction(loading, member=self.bot.user)
+                return
+
+            df = pd.DataFrame(top_damage_data, columns=['name', 'total_damage']).sort_values(by='total_damage', ascending=True)
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            plt.style.use('ggplot')
+            ax.barh(df['name'], df['total_damage'], color='lightcoral')
+            ax.xaxis.set_major_formatter(mtick.StrMethodFormatter('{x:,.0f}'))
+            plt.title('Top 3 Damage Dealers')
+            plt.xlabel('Total Damage Done')
+            plt.tight_layout()
 
             with io.BytesIO() as image_binary:
                 plt.savefig(image_binary)
                 image_binary.seek(0)
                 await ctx.channel.send(file=discord.File(fp=image_binary, filename='image.png'))
 
+            await ctx.message.remove_reaction(loading, member=self.bot.user)
+
+    @app_commands.command(name="cumhelp", description="get help with cum commands")
+    async def cuhelp(self, interaction: discord.Interaction):
+        description = (
+            "**Slash Commands:**\n"
+            "- /cumstats\n"
+            "- /borpacheck\n"
+            "- /goldcheck\n"
+            "- /exchange\n\n"
+            "**Dot Commands:**\n"
+            "- .cum [cooldown: 5s]\n"
+            "- .cum10 [cooldown: 15s]\n"
+            "- .cum2 [cooldown: 60s]\n"
+            "- .bigcum [cooldown: 60s]\n"
+            "- .spin [cost: 25 tokens]\n\n"
+            "**Daily Objectives:**\n"
+            "Complete 1x .cum, 1x .cum10, and 1x .cum2 within 24 hours to receive **500 extra rolls**!"
+        )
+        embed = discord.Embed(title="Cum Help!",description=description,color=0x9062d3)
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="exchange", description="Exchange borpas for Tokens")
+    async def exchange(self, interaction: discord.Interaction):
+        if interaction.channel_id not in channellist:
+             await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+             return
+        await interaction.response.send_message("Select a borpa type to exchange:", view=ExchangeView(DB_PATH), ephemeral=True)
+
+    @app_commands.command(name="prizes", description="Display the list of available prizes")
+    async def prizes(self, interaction: discord.Interaction):
+        if interaction.channel_id not in channellist:
+             await interaction.response.send_message("This command can't be used in this channel.", ephemeral=True)
+             return
+        
+        embed = discord.Embed(title="🏆 Prize Shop 🏆", description="Exchange your hard-earned Borpacoins for these prizes!", color=0xFFD700)
+        embed.add_field(name="Custom Title", value="**Cost:** 25,000 Borpacoins\n**Description:** A custom role with a name and color of your choice.", inline=False)
+        embed.set_footer(text="To redeem, please contact cumdev.")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+
+
+
+
     #LISTENERS 
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if str(message.channel.id) == '262371002577715201':
-            textroll = random.randint(1,2000)
-            if textroll  >= 1970:
+            textroll = random.randint(1,200)
+            if textroll  <= 3:
                 playerid = message.author.id
                 playername = message.author.name
                 try:
-                    async with aiosqlite.connect('rolls.db') as db:
-                        await db.execute("UPDATE rolltable SET rolls=rolls+1 WHERE user=?",[playerid])
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        await db.execute("UPDATE rolltable SET rolls=rolls+10 WHERE user=?",[playerid])
                         await db.commit()
-                    await message.add_reaction(emoji=plusone) 
-                    channel = self.bot.get_channel(902418660767965184)
-                    await channel.send(playername + " rolled: " + str(textroll))
+                        await message.add_reaction(plusone) 
+                        channel = self.bot.get_channel(902418660767965184)
+                        await channel.send(playername + " rolled: " + str(textroll))
                 except:
                     print('no user')
 
     #LOOPS
 
-    @tasks.loop(hours=2)
+    @tasks.loop(hours=1)
     async def freecummies(self):
-        async with aiosqlite.connect('rolls.db') as db:
-                await db.execute("UPDATE rolltable SET rolls=rolls+1")
+        async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("UPDATE rolltable SET rolls=rolls+15")
                 await db.commit()
+
+    @tasks.loop(hours=1)
+    async def boss_regen(self):
+        """A tasks loop to regenerate the boss HP by 5% of max every hour."""
+        await self.bot.wait_until_ready() # Wait for the bot to be online
+        
+        bosses = [
+            {'path': 'configs/mpreg_hp.json', 'default_max': 100000},
+            {'path': 'configs/gigampreg_hp.json', 'default_max': 500000}
+        ]
+
+        for boss in bosses:
+            path = boss['path']
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                print(f"boss_regen: {path} not found or is invalid. Skipping regen.")
+                continue
+
+            current_hp = data.get('hp', 0)
+            max_hp = data.get('max_hp', boss['default_max'])
+
+            if current_hp >= max_hp:
+                continue
+
+            regen_amount = int(max_hp * 0.05)
+            new_hp = min(current_hp + regen_amount, max_hp)
+            data['hp'] = new_hp
+
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            
+            print(f"boss_regen: Boss at {path} regenerated {regen_amount} HP. New HP: {new_hp}/{max_hp}")
 
     @commands.Cog.listener()
     async def on_ready(self):
         await dbget()
 
-def setup(bot):
-    bot.add_cog(rollsCog(bot))
+async def setup(bot):
+    await bot.add_cog(rollsCog(bot))
     print('rolls cog loaded')
-
