@@ -65,7 +65,7 @@ class animeCog(commands.Cog, name="anime"):
         url = 'https://graphql.anilist.co'
 
         # Make the HTTP Api request
-        print("starting api req")
+        #print("starting api req")
         response = requests.post(url, json={'query': query})
 
         if response.status_code != 200:
@@ -76,9 +76,9 @@ class animeCog(commands.Cog, name="anime"):
         data = response.json()
 
         # Pretty-print the JSON to see its structure
-        print("--- API Response ---")
-        print(json.dumps(data, indent=4))
-        print("--------------------")
+        #print("--- API Response ---")
+        #print(json.dumps(data, indent=4))
+        #print("--------------------")
         # --- END OF DEBUG LINES ---
 
         output = defaultdict(list)

@@ -4,6 +4,7 @@
 **/__pycache__
 .vscode
 configs/token.json
+configs/hardcover_token.json
 venv
 .venv
 *.env

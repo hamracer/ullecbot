@@ -52,21 +52,25 @@ async def load():
         except Exception as e:
             print(f'{cog} cannot be loaded. [{e}]')
 
-    MY_GUILD = discord.Object(id=562352224840187917)  # optional: limits visibility to this guild
+    MY_GUILDS = [
+        discord.Object(id=562352224840187917),
+        discord.Object(id=262371002577715201)
+    ]
 
-    @bot.tree.command(name="re", description="Reload all cogs (owner only)", guild=MY_GUILD)
+    @bot.tree.command(name="re", description="Reload all cogs (owner only)", guilds=MY_GUILDS)
     async def re_reload(interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         results = []
         for cog in coglist:
             try:
                 await bot.reload_extension('cogs.' + cog)
+                print(f'RELOADING')
                 results.append(f"✅ {cog}")
             except Exception as e:
                 results.append(f"❌ {cog}: {e!r}")
         await interaction.followup.send("Reload results:\n" + "\n".join(results), ephemeral=True)
 
-    @bot.tree.command(name="ssync", description="Sync slash commands to the guild (owner only)", guild=MY_GUILD)
+    @bot.tree.command(name="ssync", description="Sync slash commands to the guild (owner only)", guilds=MY_GUILDS)
     @app_commands.describe(guildid="Guild ID to sync to (optional)")
     async def ssync(interaction: discord.Interaction, guildid: str = None):
         # owner check
@@ -78,7 +82,7 @@ async def load():
 
         # resolve target guild
         try:
-            target_id = int(guildid) if guildid else MY_GUILD.id
+            target_id = int(guildid) if guildid else interaction.guild_id
         except Exception:
             await interaction.followup.send("Invalid guild id provided.", ephemeral=True)
             return
@@ -114,11 +118,15 @@ async def on_ready():
     # sync app commands once the client has an application_id (run once)
     if not getattr(bot, "_app_commands_synced", False):
         try:
-            MY_GUILD = discord.Object(id=562352224840187917)
-            bot.tree.copy_global_to(guild=MY_GUILD)
-            await bot.tree.sync(guild=MY_GUILD)
+            MY_GUILDS = [
+                discord.Object(id=562352224840187917),
+                discord.Object(id=262371002577715201)
+            ]
+            for guild in MY_GUILDS:
+                bot.tree.copy_global_to(guild=guild)
+                await bot.tree.sync(guild=guild)
             bot._app_commands_synced = True
-            print("App commands synced to guild", MY_GUILD.id)
+            print(f"App commands synced to guilds: {[g.id for g in MY_GUILDS]}")
         except Exception as e:
             print("Failed to sync app commands on_ready:", repr(e))
 
