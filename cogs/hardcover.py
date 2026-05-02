@@ -8,6 +8,19 @@ import os
 import json
 from datetime import datetime, timedelta
 
+def load_book_choices():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    choices_file = os.path.join(base_dir, 'configs', 'book_choices.json')
+    if os.path.exists(choices_file):
+        try:
+            with open(choices_file, 'r', encoding='utf-8') as f:
+                books = json.load(f)
+                return [app_commands.Choice(name=book, value=book) for book in books][:25]
+        except Exception as e:
+            print(f"Error loading book choices: {e}")
+    return [app_commands.Choice(name="The Poppy War", value="The Poppy War")]
+
+BOOK_CHOICES = load_book_choices()
 
 class hardcoverCog(commands.Cog, name="hardcover"):
     def __init__(self, bot):
@@ -52,11 +65,15 @@ class hardcoverCog(commands.Cog, name="hardcover"):
             
         await interaction.response.send_message(f"Successfully registered your Hardcover username as `{username}`!", ephemeral=True)
 
-    @app_commands.command(name="readlist", description="Show your Hardcover read list")
-    @app_commands.describe(username="Optional Hardcover username to lookup instead of your own")
-    async def readlist(self, interaction: discord.Interaction, username: str = None):
+    @app_commands.command(name="ratings", description="Show user ratings for a specific book")
+    @app_commands.describe(book_title="Select a book from the list")
+    @app_commands.choices(book_title=BOOK_CHOICES)
+    async def ratings(self, interaction: discord.Interaction, book_title: app_commands.Choice[str]):
         await interaction.response.defer()
         
+        search_title = book_title.value
+        
+        # Load registered users
         user_file = 'db/hardcover_users.json'
         users = {}
         if os.path.exists(user_file):
@@ -65,261 +82,50 @@ class hardcoverCog(commands.Cog, name="hardcover"):
                     users = json.load(f)
             except json.JSONDecodeError:
                 pass
-                
-        if username:
-            identifier = username
-        else:
-            identifier = users.get(str(interaction.user.id))
         
-        if not identifier:
-            await interaction.followup.send("You haven't registered a Hardcover username yet! Use `/register` first.", ephemeral=True)
+        if not users:
+            await interaction.followup.send("No registered Hardcover users found.")
             return
-
-        is_id = identifier.isdigit()
         
-        if is_id:
-            query_str = """
-            query GetUserBooks($id: Int!) {
-                users(where: {id: {_eq: $id}}, limit: 1) {
-                    id
-                    username
-                    name
-                    user_books(where: {status_id: {_eq: 3}}, limit: 50, order_by: {rating: desc_nulls_last}) {
-                        rating
-                        book {
-                            title
-                            contributions(limit: 1) {
-                                author {
-                                    name
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            """
-            params = {"id": int(identifier)}
-        else:
-            query_str = """
-            query GetUserBooks($username: citext!) {
-                users(where: {username: {_eq: $username}}, limit: 1) {
-                    id
-                    username
-                    name
-                    user_books(where: {status_id: {_eq: 3}}, limit: 50, order_by: {rating: desc_nulls_last}) {
-                        rating
-                        book {
-                            title
-                            contributions(limit: 1) {
-                                author {
-                                    name
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            """
-            params = {"username": identifier}
-
-        try:
-            query = gql(query_str)
-            
-            async with self.client as session:
-                result = await session.execute(query, variable_values=params)
-            
-            users_data = result.get("users", [])
-            if not users_data:
-                await interaction.followup.send(f"Could not find a Hardcover user matching `{identifier}`.")
-                return
-            
-            user = users_data[0]
-            username = user.get("username") or user.get("name") or identifier
-            user_books = user.get("user_books", [])
-            
-            if not user_books:
-                await interaction.followup.send(f"**{username}** has no books in their read list.")
-                return
-            
-            embed = discord.Embed(title=f"{username}'s Read List", color=discord.Color.blue())
-            embed.set_footer(text="Powered by Hardcover API")
-            
-            books_text = ""
-            for ub in user_books:
-                book = ub.get("book") or {}
-                title = book.get("title", "Unknown Book")
-                rating = ub.get("rating")
-                
-                author_name = ""
-                contribs = book.get("contributions") or []
-                if contribs:
-                    author = contribs[0].get("author") or {}
-                    author_name = author.get("name", "")
-                
-                rating_str = f" ({rating}⭐)" if rating is not None else ""
-                
-                if author_name:
-                    line = f"• **{title}** by {author_name}{rating_str}\n"
-                else:
-                    line = f"• **{title}**{rating_str}\n"
-                    
-                if len(books_text) + len(line) > 4000:
-                    books_text += "• *...and more*\n"
-                    break
-                books_text += line
-                    
-            embed.description = books_text
-            await interaction.followup.send(embed=embed)
-            
-        except Exception as e:
-            await interaction.followup.send(f"An error occurred while fetching the read list:\n```\n{e}\n```")
-
-    @app_commands.command(name="readinglist", description="Show your Hardcover currently reading list")
-    async def readinglist(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        
-        user_file = 'db/hardcover_users.json'
-        users = {}
-        if os.path.exists(user_file):
-            try:
-                with open(user_file, 'r') as f:
-                    users = json.load(f)
-            except json.JSONDecodeError:
-                pass
-                
-        identifier = users.get(str(interaction.user.id))
-        
-        if not identifier:
-            await interaction.followup.send("You haven't registered a Hardcover username yet! Use `/register` first.", ephemeral=True)
-            return
-
-        is_id = identifier.isdigit()
-        
-        if is_id:
-            query_str = """
-            query GetUserBooks($id: Int!) {
-                users(where: {id: {_eq: $id}}, limit: 1) {
-                    id
-                    username
-                    name
-                    user_books(where: {status_id: {_eq: 2}}, limit: 10, order_by: {updated_at: desc}) {
-                        book {
-                            title
-                            contributions(limit: 1) {
-                                author {
-                                    name
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            """
-            params = {"id": int(identifier)}
-        else:
-            query_str = """
-            query GetUserBooks($username: citext!) {
-                users(where: {username: {_eq: $username}}, limit: 1) {
-                    id
-                    username
-                    name
-                    user_books(where: {status_id: {_eq: 2}}, limit: 10, order_by: {updated_at: desc}) {
-                        book {
-                            title
-                            contributions(limit: 1) {
-                                author {
-                                    name
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            """
-            params = {"username": identifier}
-
-        try:
-            query = gql(query_str)
-            
-            async with self.client as session:
-                result = await session.execute(query, variable_values=params)
-            
-            users_data = result.get("users", [])
-            if not users_data:
-                await interaction.followup.send(f"Could not find a Hardcover user matching `{identifier}`.")
-                return
-            
-            user = users_data[0]
-            username = user.get("username") or user.get("name") or identifier
-            user_books = user.get("user_books", [])
-            
-            if not user_books:
-                await interaction.followup.send(f"**{username}** is not currently reading any books.")
-                return
-            
-            embed = discord.Embed(title=f"{username}'s Currently Reading List", color=discord.Color.green())
-            embed.set_footer(text="Powered by Hardcover API")
-            
-            books_text = ""
-            for ub in user_books:
-                book = ub.get("book") or {}
-                title = book.get("title", "Unknown Book")
-                
-                author_name = ""
-                contribs = book.get("contributions") or []
-                if contribs:
-                    author = contribs[0].get("author") or {}
-                    author_name = author.get("name", "")
-                
-                if author_name:
-                    books_text += f"• **{title}** by {author_name}\n"
-                else:
-                    books_text += f"• **{title}**\n"
-                    
-            embed.description = books_text
-            await interaction.followup.send(embed=embed)
-            
-        except Exception as e:
-            await interaction.followup.send(f"An error occurred while fetching the currently reading list:\n```\n{e}\n```")
-
-    @app_commands.command(name="trending", description="Show top 5 trending books for the last month on Hardcover")
-    async def trending(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        
-        since_date = (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')
-        
-        query_str = """
-        query GetTrendingBooks {
-            books(limit: 5, order_by: {ratings_count: desc_nulls_last}, where: {release_date: {_gte: "%s"}}) {
+        # Search for the selected book
+        search_query = """
+        query SearchBook($title: String!) {
+            books(where: {title: {_eq: $title}}, limit: 1, order_by: {users_count: desc_nulls_last}) {
+                id
                 title
-                rating
+                image {
+                    url
+                }
                 contributions(limit: 1) {
                     author {
                         name
                     }
                 }
             }
-        }""" % since_date
+        }
+        """
         
         try:
-            query = gql(query_str)
-            
             async with self.client as session:
-                result = await session.execute(query)
-            
-            books_data = result.get("books", [])
-            
-            if not books_data:
-                await interaction.followup.send("Could not fetch trending books from Hardcover.")
-                return
-            
-            embed = discord.Embed(title="Hardcover's Top 5 Trending Books (Last Month)", color=discord.Color.gold())
-            embed.set_footer(text="Powered by Hardcover API")
-            
-            books_text = ""
-            for book in books_data:
-                title = book.get("title", "Unknown Book")
-                rating = book.get("rating")
+                query = gql(search_query)
+                search_result = await session.execute(query, variable_values={"title": search_title})
+                
+                books_data = search_result.get("books", [])
+                
+                if not books_data:
+                    # Fallback to Title Cased match
+                    search_result = await session.execute(query, variable_values={"title": search_title.title()})
+                    books_data = search_result.get("books", [])
+                    
+                if not books_data:
+                    await interaction.followup.send(f"Could not find '{search_title}' on Hardcover. Note: Due to recent API limits, an exact title match is required (e.g., 'The Poppy War').")
+                    return
+                
+                book = books_data[0]
+                book_id = book.get("id")
+                title = book.get("title")
+                image_data = book.get("image") or {}
+                image_url = image_data.get("url")
                 
                 author_name = ""
                 contribs = book.get("contributions") or []
@@ -327,20 +133,299 @@ class hardcoverCog(commands.Cog, name="hardcover"):
                     author = contribs[0].get("author") or {}
                     author_name = author.get("name", "")
                 
-                rating_str = f" ({rating}⭐)" if rating is not None else ""
+                # Get ratings from all registered users for this book
+                ratings_data = []
+
+                user_ids = []
+                usernames = []
+                for identifier in users.values():
+                    if identifier.isdigit():
+                        user_ids.append(int(identifier))
+                    else:
+                        usernames.append(identifier)
+                        
+                ratings_query = """
+                query GetUsersRatings($book_id: Int!, $usernames: [citext!], $user_ids: [Int!]) {
+                    users(where: {
+                        _or: [
+                            {username: {_in: $usernames}},
+                            {id: {_in: $user_ids}}
+                        ]
+                    }) {
+                        id
+                        username
+                        name
+                        user_books(where: {book_id: {_eq: $book_id}}, limit: 1) {
+                            rating
+                        }
+                    }
+                }
+                """
+                params = {
+                    "book_id": book_id,
+                    "usernames": usernames,
+                    "user_ids": user_ids
+                }
                 
-                if author_name:
-                    line = f"• **{title}** by {author_name}{rating_str}\n"
+                try:
+                    r_query = gql(ratings_query)
+                    result = await session.execute(r_query, variable_values=params)
+                    
+                    users_data = result.get("users", [])
+                    api_users = {}
+                    for u in users_data:
+                        if u.get("username"):
+                            api_users[u.get("username").lower()] = u
+                        if u.get("id"):
+                            api_users[str(u.get("id"))] = u
+                            
+                    for identifier in set(users.values()):
+                        user = api_users.get(identifier.lower())
+                        if user:
+                            display_name = user.get("username") or user.get("name") or identifier
+                            user_books = user.get("user_books", [])
+                            if user_books:
+                                rating = user_books[0].get("rating")
+                            else:
+                                rating = None
+                        else:
+                            display_name = identifier
+                            rating = None
+                            
+                        ratings_data.append({
+                            "name": display_name,
+                            "rating": rating
+                        })
+                except Exception as e:
+                    print(f"Error fetching ratings: {e}")
+                
+                if not ratings_data:
+                    await interaction.followup.send(f"No registered users have rated '{title}' yet.")
+                    return
+            
+            # Sort by rating (highest first)
+            ratings_data.sort(key=lambda x: x["rating"] if x["rating"] is not None else -1, reverse=True)
+            
+            embed = discord.Embed(
+                title=f"Ratings for {title}",
+                color=discord.Color.blue()
+            )
+            
+            if image_url:
+                embed.set_thumbnail(url=image_url)
+                
+            if author_name:
+                embed.add_field(name="Author", value=author_name, inline=False)
+            
+            ratings_text = ""
+            for data in ratings_data:
+                if data["rating"] is not None:
+                    ratings_text += f"**{data['name']}**: {data['rating']} ⭐\n"
                 else:
-                    line = f"• **{title}**{rating_str}\n"
-                    
-                books_text += line
-                    
-            embed.description = books_text
+                    ratings_text += f"**{data['name']}**: No rating\n"
+            
+            embed.description = ratings_text
+            embed.set_footer(text="Powered by Hardcover API")
+            
             await interaction.followup.send(embed=embed)
             
         except Exception as e:
-            await interaction.followup.send(f"An error occurred while fetching trending books:\n```\n{e}\n```")
+            await interaction.followup.send(f"An error occurred while fetching ratings:\n```\n{e}\n```")
+
+    @app_commands.command(name="readingprogress", description="Show user reading progress for a specific book")
+    @app_commands.describe(book_title="Select a book from the list")
+    @app_commands.choices(book_title=BOOK_CHOICES)
+    async def readingprogress(self, interaction: discord.Interaction, book_title: app_commands.Choice[str]):
+        await interaction.response.defer()
+        
+        search_title = book_title.value
+        
+        # Load registered users
+        user_file = 'db/hardcover_users.json'
+        users = {}
+        if os.path.exists(user_file):
+            try:
+                with open(user_file, 'r') as f:
+                    users = json.load(f)
+            except json.JSONDecodeError:
+                pass
+        
+        if not users:
+            await interaction.followup.send("No registered Hardcover users found.")
+            return
+        
+        # Search for the selected book
+        search_query = """
+        query SearchBook($title: String!) {
+            books(where: {title: {_eq: $title}}, limit: 1, order_by: {users_count: desc_nulls_last}) {
+                id
+                title
+                image {
+                    url
+                }
+                contributions(limit: 1) {
+                    author {
+                        name
+                    }
+                }
+            }
+        }
+        """
+        
+        try:
+            async with self.client as session:
+                query = gql(search_query)
+                search_result = await session.execute(query, variable_values={"title": search_title})
+                
+                books_data = search_result.get("books", [])
+                
+                if not books_data:
+                    # Fallback to Title Cased match
+                    search_result = await session.execute(query, variable_values={"title": search_title.title()})
+                    books_data = search_result.get("books", [])
+                    
+                if not books_data:
+                    await interaction.followup.send(f"Could not find '{search_title}' on Hardcover. Note: Due to recent API limits, an exact title match is required (e.g., 'The Poppy War').")
+                    return
+                
+                book = books_data[0]
+                book_id = book.get("id")
+                title = book.get("title")
+                image_data = book.get("image") or {}
+                image_url = image_data.get("url")
+                
+                author_name = ""
+                contribs = book.get("contributions") or []
+                if contribs:
+                    author = contribs[0].get("author") or {}
+                    author_name = author.get("name", "")
+                
+                # Get progress from all registered users for this book
+                progress_data = []
+
+                user_ids = []
+                usernames = []
+                for identifier in users.values():
+                    if identifier.isdigit():
+                        user_ids.append(int(identifier))
+                    else:
+                        usernames.append(identifier)
+                        
+                progress_query = """
+                query GetUsersProgress($book_id: Int!, $usernames: [citext!], $user_ids: [Int!]) {
+                    users(where: {
+                        _or: [
+                            {username: {_in: $usernames}},
+                            {id: {_in: $user_ids}}
+                        ]
+                    }) {
+                        id
+                        username
+                        name
+                        user_books(where: {book_id: {_eq: $book_id}}, limit: 1) {
+                            status_id
+                            user_book_reads(limit: 1, order_by: {started_at: desc_nulls_last}) {
+                                progress
+                            }
+                        }
+                    }
+                }
+                """
+                params = {
+                    "book_id": book_id,
+                    "usernames": usernames,
+                    "user_ids": user_ids
+                }
+                
+                try:
+                    p_query = gql(progress_query)
+                    result = await session.execute(p_query, variable_values=params)
+                    
+                    users_data = result.get("users", [])
+                    api_users = {}
+                    for u in users_data:
+                        if u.get("username"):
+                            api_users[u.get("username").lower()] = u
+                        if u.get("id"):
+                            api_users[str(u.get("id"))] = u
+                            
+                    for identifier in set(users.values()):
+                        user = api_users.get(identifier.lower())
+                        if user:
+                            display_name = user.get("username") or user.get("name") or identifier
+                            user_books = user.get("user_books", [])
+                            if user_books:
+                                ub = user_books[0]
+                                status_id = ub.get("status_id")
+                                reads = ub.get("user_book_reads", [])
+                                progress = reads[0].get("progress") if reads else None
+                            else:
+                                status_id = 0
+                                progress = None
+                        else:
+                            display_name = identifier
+                            status_id = 0
+                            progress = None
+                            
+                        progress_data.append({
+                            "name": display_name,
+                            "status_id": status_id,
+                            "progress": progress
+                        })
+                except Exception as e:
+                    print(f"Error fetching progress: {e}")
+                
+                if not progress_data:
+                    await interaction.followup.send(f"No registered users have '{title}' tracked yet.")
+                    return
+            
+            # Sort by status (finished first), then progress (highest first)
+            progress_data.sort(key=lambda x: (
+                x["status_id"] if x["status_id"] is not None else -1,
+                x["progress"] if x["progress"] is not None else -1
+            ), reverse=True)
+            
+            embed = discord.Embed(
+                title=f"Reading Progress for {title}",
+                color=discord.Color.green()
+            )
+            
+            if image_url:
+                embed.set_thumbnail(url=image_url)
+                
+            if author_name:
+                embed.add_field(name="Author", value=author_name, inline=False)
+            
+            progress_text = ""
+            for data in progress_data:
+                status_id = data["status_id"]
+                progress = data["progress"]
+                name = data["name"]
+                
+                if status_id == 3:
+                    progress_text += f"**{name}**: Finished 🏁\n"
+                elif status_id == 2:
+                    if progress is not None:
+                        progress_text += f"**{name}**: Currently Reading ({progress}%)\n"
+                    else:
+                        progress_text += f"**{name}**: Currently Reading\n"
+                elif status_id == 1:
+                    progress_text += f"**{name}**: Want to Read\n"
+                elif status_id == 0:
+                    progress_text += f"**{name}**: Not Reading\n"
+                else:
+                    if progress is not None:
+                        progress_text += f"**{name}**: {progress}%\n"
+                    else:
+                        progress_text += f"**{name}**: Tracked (Unknown status)\n"
+                        
+            embed.description = progress_text
+            embed.set_footer(text="Powered by Hardcover API")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred while fetching progress:\n```\n{e}\n```")
 
     
     

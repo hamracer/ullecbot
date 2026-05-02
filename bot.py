@@ -32,8 +32,12 @@ def loadtoken():
             data = json.load(f)
             bot_token = data['bot_token']
             return True
-    except:
+    except Exception as e:
+        print(f"Token file not found or invalid: {e}")
         bot_token = os.environ.get('bot_token')
+        if not bot_token:
+            print("Failed to load bot_token from configs/token.json and environment variables.")
+            return False
         return True
 
 
