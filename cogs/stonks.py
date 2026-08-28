@@ -28,6 +28,7 @@ except ImportError:
 PORTFOLIO_FILE = "db/portfolios.json"
 ALPACA_CONFIG_FILE = "configs/alpaca.json"
 STARTING_CASH = 100000.0
+STONKS_CHANNEL_ID = 1081023133236080650
 
 class stonksCog(commands.Cog, name="stonks"):
     def __init__(self, bot):
@@ -41,6 +42,21 @@ class stonksCog(commands.Cog, name="stonks"):
         if not os.path.exists(PORTFOLIO_FILE):
             with open(PORTFOLIO_FILE, "w") as f:
                 json.dump({}, f)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.channel_id != STONKS_CHANNEL_ID:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"Stonks commands can only be used in <#{STONKS_CHANNEL_ID}>!",
+                    ephemeral=True
+                )
+            return False
+        return True
+
+    async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CheckFailure):
+            return
+        print(f"Error in stonks command: {error}")
 
     def load_alpaca_client(self):
         if os.path.exists(ALPACA_CONFIG_FILE) and ALPACA_AVAILABLE:
