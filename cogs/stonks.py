@@ -1,0 +1,1080 @@
+import discord
+from discord.ext import commands
+from discord import app_commands
+import random
+import json
+import os
+import io
+import re
+import uuid
+import aiohttp
+from datetime import datetime, timezone, timedelta
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+try:
+    from alpaca.data.historical import StockHistoricalDataClient
+    from alpaca.data.requests import StockLatestQuoteRequest, StockLatestTradeRequest, StockBarsRequest
+    from alpaca.data.timeframe import TimeFrame
+    from alpaca.trading.client import TradingClient
+    from alpaca.trading.requests import GetAssetsRequest
+    from alpaca.trading.enums import AssetClass, AssetStatus
+    ALPACA_AVAILABLE = True
+except ImportError:
+    ALPACA_AVAILABLE = False
+
+PORTFOLIO_FILE = "db/portfolios.json"
+ALPACA_CONFIG_FILE = "configs/alpaca.json"
+STARTING_CASH = 100000.0
+
+class stonksCog(commands.Cog, name="stonks"):
+    def __init__(self, bot):
+        self.bot = bot
+        self.alpaca_client = None
+        self.trading_client = None
+        self.cached_assets = []
+        self.load_alpaca_client()
+        
+        # Ensure portfolio file exists
+        if not os.path.exists(PORTFOLIO_FILE):
+            with open(PORTFOLIO_FILE, "w") as f:
+                json.dump({}, f)
+
+    def load_alpaca_client(self):
+        if os.path.exists(ALPACA_CONFIG_FILE) and ALPACA_AVAILABLE:
+            try:
+                with open(ALPACA_CONFIG_FILE, "r") as f:
+                    config = json.load(f)
+                    api_key = config.get("API_KEY")
+                    secret_key = config.get("SECRET_KEY")
+                    if api_key and secret_key and api_key != "YOUR_API_KEY":
+                        self.alpaca_client = StockHistoricalDataClient(api_key, secret_key)
+                        self.trading_client = TradingClient(api_key, secret_key, paper=True)
+                        print("Alpaca Market Data & Trading Clients initialized.")
+                        return True
+                    else:
+                        print("Alpaca API keys not set. Please update configs/alpaca.json")
+            except Exception as e:
+                print(f"Error loading Alpaca config: {e}")
+        return False
+
+    def get_market_assets(self):
+        if not self.cached_assets and self.trading_client:
+            try:
+                req = GetAssetsRequest(asset_class=AssetClass.US_EQUITY, status=AssetStatus.ACTIVE)
+                assets = self.trading_client.get_all_assets(req)
+                self.cached_assets = [a.symbol for a in assets if getattr(a, "tradable", False)]
+                print(f"Cached {len(self.cached_assets)} tradeable US market assets.")
+            except Exception as e:
+                print(f"Error fetching market assets: {e}")
+        return self.cached_assets
+
+    def load_portfolios(self):
+        try:
+            with open(PORTFOLIO_FILE, "r") as f:
+                return json.load(f)
+        except:
+            return {}
+
+    def save_portfolios(self, data):
+        with open(PORTFOLIO_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+
+    def get_price(self, symbol: str) -> float:
+        if not self.alpaca_client:
+            if not self.load_alpaca_client():
+                raise Exception("Alpaca Client not initialized. Check API keys in configs/alpaca.json")
+        
+        # First try fetching latest trade price
+        try:
+            trade_req = StockLatestTradeRequest(symbol_or_symbols=symbol)
+            trades = self.alpaca_client.get_stock_latest_trade(trade_req)
+            if symbol in trades:
+                trade = trades[symbol]
+                price = getattr(trade, "price", None)
+                if price is None and isinstance(trade, dict):
+                    price = trade.get("price")
+                if price and float(price) > 0:
+                    return float(price)
+        except Exception:
+            pass
+
+        # Fallback to latest quote
+        quote_req = StockLatestQuoteRequest(symbol_or_symbols=symbol)
+        quotes = self.alpaca_client.get_stock_latest_quote(quote_req)
+        if symbol in quotes:
+            quote = quotes[symbol]
+            price = getattr(quote, "ask_price", None)
+            if price is None and isinstance(quote, dict):
+                price = quote.get("ask_price", 0)
+            if not price or float(price) == 0:
+                price = getattr(quote, "bid_price", None)
+                if price is None and isinstance(quote, dict):
+                    price = quote.get("bid_price", 0)
+            if price and float(price) > 0:
+                return float(price)
+        raise Exception(f"No price data found for {symbol}")
+
+    def get_holding_info(self, holding_data):
+        if isinstance(holding_data, (int, float)):
+            return int(holding_data), 0.0, 0.0
+        elif isinstance(holding_data, dict):
+            shares = int(holding_data.get("shares", 0))
+            avg_cost = float(holding_data.get("avg_cost", 0.0))
+            total_invested = float(holding_data.get("total_invested", avg_cost * shares))
+            return shares, avg_cost, total_invested
+        return 0, 0.0, 0.0
+
+    def evaluate_contract(self, pos: dict, current_price: float):
+        pos_type = pos.get("type", "LONG")
+        entry_price = float(pos.get("entry_price", 0.0))
+        margin = float(pos.get("margin", 0.0))
+        shares = float(pos.get("shares", 0.0))
+        liq_price = float(pos.get("liquidation_price", 0.0))
+        
+        is_liquidated = False
+        if pos_type == "LONG":
+            if current_price <= liq_price:
+                is_liquidated = True
+            pnl = (current_price - entry_price) * shares
+        else:
+            if current_price >= liq_price:
+                is_liquidated = True
+            pnl = (entry_price - current_price) * shares
+            
+        if is_liquidated:
+            pnl = -margin
+            equity = 0.0
+            roe = -100.0
+        else:
+            equity = max(0.0, margin + pnl)
+            roe = (pnl / margin) * 100.0 if margin > 0 else 0.0
+            if equity <= 0.0:
+                is_liquidated = True
+                equity = 0.0
+                roe = -100.0
+                
+        return is_liquidated, pnl, equity, roe
+
+    @app_commands.command(name="stonks_join", description="Join the stock market competition and get your starting cash!")
+    async def stonks_join(self, interaction: discord.Interaction):
+        portfolios = self.load_portfolios()
+        user_id = str(interaction.user.id)
+        
+        if user_id in portfolios:
+            await interaction.response.send_message("You have already joined the competition!", ephemeral=True)
+            return
+            
+        portfolios[user_id] = {
+            "cash": STARTING_CASH,
+            "holdings": {},
+            "positions": [],
+            "history": []
+        }
+        self.save_portfolios(portfolios)
+        await interaction.response.send_message(f"Welcome to the competition, {interaction.user.mention}! You have been granted ${STARTING_CASH:,.2f} to start trading.")
+
+    async def get_company_info(self, symbol: str) -> tuple[str, str]:
+        name = symbol
+        if self.trading_client:
+            try:
+                asset = self.trading_client.get_asset(symbol)
+                if asset and hasattr(asset, "name") and asset.name:
+                    name = asset.name
+            except Exception:
+                pass
+
+        description = ""
+        try:
+            clean_name = re.sub(r' (Common Stock|Class [A-Z]|Ordinary Shares|Depositary Shares|Inc\.|Corp\.|Ltd\.|LLC|PLC).*', '', name, flags=re.I).strip()
+            headers = {'User-Agent': 'UllecBot/1.0 (https://github.com/ullecbot; contact@example.com)'}
+            async with aiohttp.ClientSession(headers=headers) as session:
+                url = f'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={clean_name}%20company&format=json&utf8=1'
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=4)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        results = data.get('query', {}).get('search', [])
+                        if results:
+                            title = results[0]['title']
+                            summary_url = f'https://en.wikipedia.org/api/rest_v1/page/summary/{title}'
+                            async with session.get(summary_url, timeout=aiohttp.ClientTimeout(total=4)) as sum_resp:
+                                if sum_resp.status == 200:
+                                    s_data = await sum_resp.json()
+                                    extract = s_data.get('extract', '')
+                                    if extract:
+                                        sentences = re.split(r'(?<=[.!?])\s+', extract)
+                                        description = ' '.join(sentences[:2])
+        except Exception:
+            description = ""
+            
+        return name, description
+
+    @app_commands.command(name="buy", description="Buy shares of a stock.")
+    async def buy(self, interaction: discord.Interaction, symbol: str, quantity: int):
+        if quantity <= 0:
+            await interaction.response.send_message("Quantity must be greater than 0.", ephemeral=True)
+            return
+
+        symbol = symbol.upper()
+        user_id = str(interaction.user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            await interaction.response.send_message("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        try:
+            price = self.get_price(symbol)
+        except Exception as e:
+            await interaction.response.send_message(f"Error fetching price for {symbol}: {e}", ephemeral=True)
+            return
+            
+        if price <= 0:
+            await interaction.response.send_message(f"Could not get a valid price for {symbol}.", ephemeral=True)
+            return
+
+        total_cost = price * quantity
+        user_cash = portfolios[user_id]["cash"]
+
+        if total_cost > user_cash:
+            await interaction.response.send_message(f"Insufficient funds! You need **${total_cost:,.2f}** but only have **${user_cash:,.2f}**.", ephemeral=True)
+            return
+
+        # Execute trade with cost basis tracking
+        user_data = portfolios[user_id]
+        holdings = user_data.setdefault("holdings", {})
+        old_shares, old_avg_cost, old_total_invested = self.get_holding_info(holdings.get(symbol, 0))
+        
+        new_shares = old_shares + quantity
+        new_total_invested = old_total_invested + total_cost
+        new_avg_cost = new_total_invested / new_shares if new_shares > 0 else price
+        
+        holdings[symbol] = {
+            "shares": new_shares,
+            "avg_cost": new_avg_cost,
+            "total_invested": new_total_invested
+        }
+        user_data["cash"] -= total_cost
+        
+        # Log to trade history
+        history = user_data.setdefault("history", [])
+        history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "BUY",
+            "symbol": symbol,
+            "quantity": quantity,
+            "price": price,
+            "total": total_cost
+        })
+        if len(history) > 50:
+            user_data["history"] = history[-50:]
+        
+        self.save_portfolios(portfolios)
+        
+        new_cash = user_data["cash"]
+
+        embed = discord.Embed(
+            title=f"✅ Purchased {quantity:,} share(s) of {symbol}",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="💵 Execution Price", value=f"${price:,.2f}", inline=True)
+        embed.add_field(name="🧾 Total Cost", value=f"${total_cost:,.2f}", inline=True)
+        embed.add_field(name="💰 Remaining Cash", value=f"**${new_cash:,.2f}**", inline=False)
+        embed.add_field(name=f"📦 Position Summary", value=f"**{new_shares:,}** shares @ **${new_avg_cost:,.2f}** avg", inline=False)
+        
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="buy_random", description="Buy a random mystery stock!")
+    @app_commands.describe(
+        spend_amount="Total dollar amount to spend (e.g. 5000)",
+        quantity="Number of shares to buy (defaults to 1 if spend_amount is not set)"
+    )
+    async def buy_random(self, interaction: discord.Interaction, spend_amount: float = None, quantity: int = None):
+        user_id = str(interaction.user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            await interaction.response.send_message("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        user_cash = portfolios[user_id]["cash"]
+        if user_cash <= 0:
+            await interaction.response.send_message("You have no cash left to invest!", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        # Get all tradeable assets on the market
+        market_assets = self.get_market_assets()
+        if not market_assets:
+            await interaction.followup.send("Market assets are currently unavailable. Please try again shortly!", ephemeral=True)
+            return
+
+        # Pick random candidate stocks across the entire market
+        sampled_stocks = random.sample(market_assets, min(25, len(market_assets)))
+        chosen_symbol = None
+        price = 0.0
+
+        for candidate in sampled_stocks:
+            try:
+                candidate_price = self.get_price(candidate)
+                if candidate_price and candidate_price > 0:
+                    chosen_symbol = candidate
+                    price = candidate_price
+                    break
+            except Exception:
+                continue
+
+        if not chosen_symbol or price <= 0:
+            await interaction.followup.send("Could not fetch a valid stock price at the moment. Try again shortly!", ephemeral=True)
+            return
+
+        # Determine shares to buy
+        if spend_amount is not None:
+            if spend_amount <= 0:
+                await interaction.followup.send("Spend amount must be greater than $0.", ephemeral=True)
+                return
+            if spend_amount > user_cash:
+                await interaction.followup.send(f"You don't have enough cash! You specified **${spend_amount:,.2f}** but only have **${user_cash:,.2f}**.", ephemeral=True)
+                return
+            
+            calculated_qty = int(spend_amount // price)
+            if calculated_qty < 1:
+                await interaction.followup.send(f"🎲 Rolled **{chosen_symbol}** at **${price:,.2f}**/share, but your spend amount of **${spend_amount:,.2f}** is not enough for 1 full share.", ephemeral=True)
+                return
+            actual_quantity = calculated_qty
+        else:
+            actual_quantity = quantity if (quantity is not None and quantity > 0) else 1
+
+        total_cost = price * actual_quantity
+        if total_cost > user_cash:
+            await interaction.followup.send(f"🎲 Rolled **{chosen_symbol}** at **${price:,.2f}**/share! {actual_quantity:,} share(s) cost **${total_cost:,.2f}**, but you only have **${user_cash:,.2f}**.", ephemeral=True)
+            return
+
+        # Execute trade with cost basis tracking
+        user_data = portfolios[user_id]
+        holdings = user_data.setdefault("holdings", {})
+        old_shares, old_avg_cost, old_total_invested = self.get_holding_info(holdings.get(chosen_symbol, 0))
+        
+        new_shares = old_shares + actual_quantity
+        new_total_invested = old_total_invested + total_cost
+        new_avg_cost = new_total_invested / new_shares if new_shares > 0 else price
+        
+        holdings[chosen_symbol] = {
+            "shares": new_shares,
+            "avg_cost": new_avg_cost,
+            "total_invested": new_total_invested
+        }
+        user_data["cash"] -= total_cost
+        
+        # Log to trade history
+        history = user_data.setdefault("history", [])
+        history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "BUY",
+            "symbol": chosen_symbol,
+            "quantity": actual_quantity,
+            "price": price,
+            "total": total_cost
+        })
+        if len(history) > 50:
+            user_data["history"] = history[-50:]
+        
+        self.save_portfolios(portfolios)
+        
+        new_cash = user_data["cash"]
+
+        embed = discord.Embed(
+            title=f"🎰 Mystery Stock Unlocked: {chosen_symbol}!",
+            description=f"The wheel of stonks has spoken and bought **{actual_quantity:,} share(s)** of **{chosen_symbol}**!",
+            color=discord.Color.purple()
+        )
+        embed.add_field(name="🎲 Selected Stock", value=f"**{chosen_symbol}**", inline=True)
+        embed.add_field(name="💵 Execution Price", value=f"${price:,.2f}", inline=True)
+        embed.add_field(name="🧾 Total Cost", value=f"${total_cost:,.2f}", inline=True)
+        embed.add_field(name="💰 Remaining Cash", value=f"**${new_cash:,.2f}**", inline=False)
+        embed.add_field(name="📦 Position Summary", value=f"**{new_shares:,}** shares @ **${new_avg_cost:,.2f}** avg", inline=False)
+        
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="sell", description="Sell shares of a stock.")
+    async def sell(self, interaction: discord.Interaction, symbol: str, quantity: int):
+        if quantity <= 0:
+            await interaction.response.send_message("Quantity must be greater than 0.", ephemeral=True)
+            return
+
+        symbol = symbol.upper()
+        user_id = str(interaction.user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            await interaction.response.send_message("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        user_data = portfolios[user_id]
+        holdings = user_data.setdefault("holdings", {})
+        old_shares, old_avg_cost, old_total_invested = self.get_holding_info(holdings.get(symbol, 0))
+
+        if old_shares < quantity:
+            await interaction.response.send_message(f"You don't own enough shares of **{symbol}** to sell {quantity:,} (you currently own {old_shares:,}).", ephemeral=True)
+            return
+
+        try:
+            price = self.get_price(symbol)
+        except Exception as e:
+            await interaction.response.send_message(f"Error fetching price for {symbol}: {e}", ephemeral=True)
+            return
+            
+        if price <= 0:
+            await interaction.response.send_message(f"Could not get a valid price for {symbol}.", ephemeral=True)
+            return
+
+        total_revenue = price * quantity
+
+        # Execute trade
+        new_shares = old_shares - quantity
+        if new_shares <= 0:
+            if symbol in holdings:
+                del holdings[symbol]
+        else:
+            new_total_invested = new_shares * old_avg_cost
+            holdings[symbol] = {
+                "shares": new_shares,
+                "avg_cost": old_avg_cost,
+                "total_invested": new_total_invested
+            }
+
+        user_data["cash"] += total_revenue
+        
+        # Log to trade history
+        history = user_data.setdefault("history", [])
+        history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "SELL",
+            "symbol": symbol,
+            "quantity": quantity,
+            "price": price,
+            "total": total_revenue
+        })
+        if len(history) > 50:
+            user_data["history"] = history[-50:]
+            
+        self.save_portfolios(portfolios)
+        
+        new_cash = user_data["cash"]
+        remaining_owned = new_shares
+
+        embed = discord.Embed(
+            title=f"💸 Sold {quantity:,} share(s) of {symbol}",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="💵 Sale Price", value=f"${price:,.2f}", inline=True)
+        embed.add_field(name="📈 Total Proceeds", value=f"+${total_revenue:,.2f}", inline=True)
+        embed.add_field(name="💰 Current Cash", value=f"**${new_cash:,.2f}**", inline=False)
+        embed.add_field(name=f"📦 Remaining {symbol} Owned", value=f"{remaining_owned:,} shares", inline=False)
+        
+        await interaction.response.send_message(embed=embed)
+
+    async def _open_leveraged_position(self, interaction: discord.Interaction, symbol: str, margin: float, leverage: int, pos_type: str):
+        if margin <= 0:
+            await interaction.response.send_message("Margin must be greater than $0.", ephemeral=True)
+            return
+
+        user_id = str(interaction.user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            await interaction.response.send_message("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        user_data = portfolios[user_id]
+        user_cash = user_data.get("cash", 0.0)
+
+        if margin > user_cash:
+            await interaction.response.send_message(f"Insufficient funds! You need **${margin:,.2f}** in margin but only have **${user_cash:,.2f}** cash.", ephemeral=True)
+            return
+
+        try:
+            entry_price = self.get_price(symbol)
+        except Exception as e:
+            await interaction.response.send_message(f"Error fetching price for {symbol}: {e}", ephemeral=True)
+            return
+
+        if entry_price <= 0:
+            await interaction.response.send_message(f"Could not get a valid price for {symbol}.", ephemeral=True)
+            return
+
+        notional_value = margin * leverage
+        shares = notional_value / entry_price
+        
+        # Calculate liquidation price
+        if pos_type == "LONG":
+            liquidation_price = entry_price * (1.0 - (1.0 / leverage))
+        else:
+            liquidation_price = entry_price * (1.0 + (1.0 / leverage))
+
+        pos_id = str(uuid.uuid4())[:6].upper()
+        
+        position = {
+            "id": pos_id,
+            "type": pos_type,
+            "symbol": symbol,
+            "margin": margin,
+            "leverage": leverage,
+            "notional": notional_value,
+            "shares": shares,
+            "entry_price": entry_price,
+            "liquidation_price": liquidation_price,
+            "opened_at": datetime.now(timezone.utc).isoformat()
+        }
+
+        user_data["cash"] -= margin
+        positions = user_data.setdefault("positions", [])
+        positions.append(position)
+
+        history = user_data.setdefault("history", [])
+        history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": f"OPEN {pos_type} {leverage}x",
+            "symbol": symbol,
+            "quantity": shares,
+            "price": entry_price,
+            "total": margin
+        })
+        if len(history) > 50:
+            user_data["history"] = history[-50:]
+
+        self.save_portfolios(portfolios)
+
+        color = discord.Color.green() if pos_type == "LONG" else discord.Color.red()
+        emoji = "📈 LONG" if pos_type == "LONG" else "📉 SHORT"
+
+        embed = discord.Embed(
+            title=f"⚡ Opened {emoji} Position: {symbol} ({leverage}x)",
+            color=color
+        )
+        embed.add_field(name="🆔 Position ID", value=f"`{pos_id}`", inline=True)
+        embed.add_field(name="💵 Entry Price", value=f"${entry_price:,.2f}", inline=True)
+        embed.add_field(name="💰 Margin (Collateral)", value=f"${margin:,.2f}", inline=True)
+        embed.add_field(name="📊 Position Size (Notional)", value=f"${notional_value:,.2f} ({shares:,.3f} shares)", inline=True)
+        embed.add_field(name="⚠️ Liquidation Price", value=f"**${liquidation_price:,.2f}**", inline=True)
+        embed.add_field(name="🏦 Remaining Cash", value=f"${user_data['cash']:,.2f}", inline=True)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="long", description="Open a leveraged LONG position (profit when stock rises).")
+    @app_commands.describe(
+        symbol="Stock ticker symbol (e.g. NVDA, TSLA, AAPL)",
+        margin="Collateral / cash to invest in this contract",
+        leverage="Leverage multiplier (2x - 50x, default 5x)"
+    )
+    @app_commands.choices(leverage=[
+        app_commands.Choice(name="2x Leverage", value=2),
+        app_commands.Choice(name="3x Leverage", value=3),
+        app_commands.Choice(name="5x Leverage", value=5),
+        app_commands.Choice(name="10x Leverage", value=10),
+        app_commands.Choice(name="20x Leverage", value=20),
+        app_commands.Choice(name="50x Leverage", value=50),
+    ])
+    async def long(self, interaction: discord.Interaction, symbol: str, margin: float, leverage: app_commands.Choice[int] = None):
+        await self._open_leveraged_position(interaction, symbol.upper(), margin, leverage.value if leverage else 5, "LONG")
+
+    @app_commands.command(name="short", description="Open a leveraged SHORT position (profit when stock drops).")
+    @app_commands.describe(
+        symbol="Stock ticker symbol (e.g. NVDA, TSLA, AAPL)",
+        margin="Collateral / cash to invest in this contract",
+        leverage="Leverage multiplier (2x - 50x, default 5x)"
+    )
+    @app_commands.choices(leverage=[
+        app_commands.Choice(name="2x Leverage", value=2),
+        app_commands.Choice(name="3x Leverage", value=3),
+        app_commands.Choice(name="5x Leverage", value=5),
+        app_commands.Choice(name="10x Leverage", value=10),
+        app_commands.Choice(name="20x Leverage", value=20),
+        app_commands.Choice(name="50x Leverage", value=50),
+    ])
+    async def short(self, interaction: discord.Interaction, symbol: str, margin: float, leverage: app_commands.Choice[int] = None):
+        await self._open_leveraged_position(interaction, symbol.upper(), margin, leverage.value if leverage else 5, "SHORT")
+
+    @app_commands.command(name="close_position", description="Close an open leveraged Long or Short contract.")
+    @app_commands.describe(position_id="The ID of the position to close (e.g. 8A3F12)")
+    async def close_position(self, interaction: discord.Interaction, position_id: str):
+        position_id = position_id.strip().upper()
+        user_id = str(interaction.user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            await interaction.response.send_message("You haven't joined the competition yet!", ephemeral=True)
+            return
+
+        user_data = portfolios[user_id]
+        positions = user_data.get("positions", [])
+        
+        target_pos = None
+        target_idx = -1
+        for idx, p in enumerate(positions):
+            if p.get("id", "").upper() == position_id:
+                target_pos = p
+                target_idx = idx
+                break
+
+        if not target_pos:
+            await interaction.response.send_message(f"No open position found with ID `{position_id}`. Use `/positions` to see your active contracts.", ephemeral=True)
+            return
+
+        symbol = target_pos["symbol"]
+        try:
+            curr_price = self.get_price(symbol)
+        except Exception as e:
+            await interaction.response.send_message(f"Error fetching current price for {symbol}: {e}", ephemeral=True)
+            return
+
+        is_liq, pnl, return_amount, roe = self.evaluate_contract(target_pos, curr_price)
+        
+        positions.pop(target_idx)
+        user_data["cash"] += return_amount
+
+        history = user_data.setdefault("history", [])
+        history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": f"CLOSE {target_pos['type']} (LIQ)" if is_liq else f"CLOSE {target_pos['type']}",
+            "symbol": symbol,
+            "quantity": target_pos["shares"],
+            "price": curr_price,
+            "total": return_amount
+        })
+        if len(history) > 50:
+            user_data["history"] = history[-50:]
+
+        self.save_portfolios(portfolios)
+
+        sign = "+" if pnl >= 0 else ""
+        roe_sign = "+" if roe >= 0 else ""
+        color = discord.Color.red() if is_liq or pnl < 0 else discord.Color.green()
+
+        if is_liq:
+            embed = discord.Embed(
+                title=f"💥 Position Liquidated: {target_pos['type']} {symbol} (`{position_id}`)",
+                description=f"Market price hit **${curr_price:,.2f}** (Liquidation: **${target_pos['liquidation_price']:,.2f}**). All collateral (${target_pos['margin']:,.2f}) was lost.",
+                color=discord.Color.dark_red()
+            )
+        else:
+            embed = discord.Embed(
+                title=f"🔒 Closed Position: {target_pos['type']} {symbol} (`{position_id}`)",
+                color=color
+            )
+            embed.add_field(name="💵 Entry → Exit", value=f"${target_pos['entry_price']:,.2f} → ${curr_price:,.2f}", inline=True)
+            embed.add_field(name="📊 P/L & ROE", value=f"**{sign}${pnl:,.2f} ({roe_sign}{roe:.2f}%)**", inline=True)
+            embed.add_field(name="💰 Returned Cash", value=f"**${return_amount:,.2f}**", inline=True)
+            embed.add_field(name="🏦 New Cash Balance", value=f"${user_data['cash']:,.2f}", inline=True)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="positions", description="View open leveraged Long/Short futures positions.")
+    @app_commands.describe(user="The user whose positions you want to view (defaults to yourself)")
+    async def positions(self, interaction: discord.Interaction, user: discord.Member = None):
+        await interaction.response.defer()
+        target_user = user or interaction.user
+        user_id = str(target_user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            if user and user != interaction.user:
+                await interaction.followup.send(f"**{target_user.display_name}** hasn't joined the competition yet!", ephemeral=True)
+            else:
+                await interaction.followup.send("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        user_data = portfolios[user_id]
+        active_positions = user_data.get("positions", [])
+        if not active_positions:
+            name_ref = f"**{target_user.display_name}** has" if user and user != interaction.user else "You have"
+            await interaction.followup.send(f"{name_ref} no open leveraged positions! Use `/long` or `/short` to open one.", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title=f"⚡ {target_user.display_name}'s Open Positions",
+            color=discord.Color.purple()
+        )
+
+        total_margin = 0.0
+        total_pnl = 0.0
+        
+        for pos in list(active_positions):
+            symbol = pos["symbol"]
+            pos_id = pos["id"]
+            pos_type = pos["type"]
+            leverage = pos["leverage"]
+            margin = pos["margin"]
+            entry_price = pos["entry_price"]
+            liq_price = pos["liquidation_price"]
+            
+            try:
+                curr_price = self.get_price(symbol)
+                is_liq, pnl, equity, roe = self.evaluate_contract(pos, curr_price)
+                
+                total_margin += margin
+                total_pnl += pnl
+                
+                emoji = "📈" if pos_type == "LONG" else "📉"
+                pnl_sign = "+" if pnl >= 0 else ""
+                roe_sign = "+" if roe >= 0 else ""
+                
+                status_text = "💥 **LIQUIDATED**" if is_liq else f"**{pnl_sign}${pnl:,.2f} ({roe_sign}{roe:.2f}%)**"
+                
+                embed.add_field(
+                    name=f"{emoji} {pos_type} {symbol} ({leverage}x) • `{pos_id}`",
+                    value=(
+                        f"Entry: **${entry_price:,.2f}** | Now: **${curr_price:,.2f}**\n"
+                        f"Margin: **${margin:,.2f}** | Liq Price: **${liq_price:,.2f}**\n"
+                        f"P/L: {status_text}"
+                    ),
+                    inline=False
+                )
+            except Exception:
+                embed.add_field(
+                    name=f"⚠️ {pos_type} {symbol} ({leverage}x) • `{pos_id}`",
+                    value=f"Margin: **${margin:,.2f}** (Live price unavailable)",
+                    inline=False
+                )
+
+        pnl_sign = "+" if total_pnl >= 0 else ""
+        embed.set_footer(text=f"Total Margin Allocated: ${total_margin:,.2f} | Total Unrealized P/L: {pnl_sign}${total_pnl:,.2f}")
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="portfolio", description="View your or another user's stock portfolio, cost basis, and net worth.")
+    @app_commands.describe(user="The user whose portfolio you want to view (defaults to yourself)")
+    async def portfolio(self, interaction: discord.Interaction, user: discord.Member = None):
+        await interaction.response.defer()
+        
+        target_user = user or interaction.user
+        user_id = str(target_user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            if user and user != interaction.user:
+                await interaction.followup.send(f"**{target_user.display_name}** hasn't joined the competition yet!", ephemeral=True)
+            else:
+                await interaction.followup.send("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        user_data = portfolios[user_id]
+        cash = user_data.get("cash", 0.0)
+        holdings = user_data.get("holdings", {})
+        positions = user_data.get("positions", [])
+        
+        total_holdings_value = 0.0
+        holdings_lines = []
+        
+        for symbol, h_data in holdings.items():
+            shares, avg_cost, _ = self.get_holding_info(h_data)
+            if shares <= 0:
+                continue
+                
+            try:
+                price = self.get_price(symbol)
+                value = price * shares
+                total_holdings_value += value
+                
+                if avg_cost > 0:
+                    cost_basis = avg_cost * shares
+                    pnl = value - cost_basis
+                    pnl_pct = (pnl / cost_basis) * 100
+                    emoji = "🟢" if pnl >= 0 else "🔴"
+                    sign = "+" if pnl >= 0 else ""
+                    holdings_lines.append(
+                        f"{emoji} **{symbol}**: {shares:,} shares @ ${avg_cost:,.2f} avg (Now: ${price:,.2f})\n"
+                        f"   └ Value: **${value:,.2f}** | P/L: **{sign}${pnl:,.2f} ({sign}{pnl_pct:.2f}%)**"
+                    )
+                else:
+                    holdings_lines.append(
+                        f"🔹 **{symbol}**: {shares:,} shares @ ${price:,.2f} (Value: **${value:,.2f}**)"
+                    )
+            except:
+                holdings_lines.append(f"⚠️ **{symbol}**: {shares:,} shares (Price unavailable)")
+                
+        positions_text = "\n".join(holdings_lines) if holdings_lines else "No active spot holdings."
+        
+        # Calculate futures / positions value
+        total_futures_equity = 0.0
+        futures_lines = []
+        for pos in positions:
+            p_sym = pos.get("symbol", "N/A")
+            p_type = pos.get("type", "LONG")
+            p_lev = pos.get("leverage", 1)
+            p_id = pos.get("id", "N/A")
+            p_margin = pos.get("margin", 0.0)
+            try:
+                p_price = self.get_price(p_sym)
+                is_liq, p_pnl, p_eq, p_roe = self.evaluate_contract(pos, p_price)
+                total_futures_equity += p_eq
+                p_emoji = "📈" if p_type == "LONG" else "📉"
+                p_sign = "+" if p_pnl >= 0 else ""
+                futures_lines.append(f"{p_emoji} `{p_id}` **{p_type} {p_sym}** ({p_lev}x): Margin **${p_margin:,.2f}** → Equity **${p_eq:,.2f}** ({p_sign}${p_pnl:,.2f})")
+            except:
+                total_futures_equity += p_margin
+                futures_lines.append(f"⚡ `{p_id}` **{p_type} {p_sym}** ({p_lev}x): Margin **${p_margin:,.2f}**")
+
+        net_worth = cash + total_holdings_value + total_futures_equity
+        total_return = net_worth - STARTING_CASH
+        total_return_pct = (total_return / STARTING_CASH) * 100
+        return_sign = "+" if total_return >= 0 else ""
+        return_emoji = "📈" if total_return >= 0 else "📉"
+        
+        embed_color = discord.Color.green() if total_return >= 0 else discord.Color.red()
+        embed = discord.Embed(title=f"📊 {target_user.display_name}'s Portfolio", color=embed_color)
+        
+        embed.add_field(name="💰 Cash Balance", value=f"${cash:,.2f}", inline=True)
+        embed.add_field(name="📦 Spot Holdings Value", value=f"${total_holdings_value:,.2f}", inline=True)
+        if positions:
+            embed.add_field(name="⚡ Futures Contracts Equity", value=f"${total_futures_equity:,.2f}", inline=True)
+            
+        embed.add_field(name="💎 Total Net Worth", value=f"**${net_worth:,.2f}**", inline=False)
+        embed.add_field(name=f"{return_emoji} Total Overall Return", value=f"**{return_sign}${total_return:,.2f} ({return_sign}{total_return_pct:.2f}%)**", inline=False)
+        embed.add_field(name="📦 Spot Holdings", value=positions_text, inline=False)
+        
+        if futures_lines:
+            embed.add_field(name="⚡ Open Futures Positions", value="\n".join(futures_lines), inline=False)
+        
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="trade_history", description="View recent transactions and purchase history.")
+    @app_commands.describe(user="The user whose trade history you want to view (defaults to yourself)")
+    async def trade_history(self, interaction: discord.Interaction, user: discord.Member = None):
+        target_user = user or interaction.user
+        user_id = str(target_user.id)
+        portfolios = self.load_portfolios()
+
+        if user_id not in portfolios:
+            if user and user != interaction.user:
+                await interaction.response.send_message(f"**{target_user.display_name}** hasn't joined the competition yet!", ephemeral=True)
+            else:
+                await interaction.response.send_message("You haven't joined the competition yet! Use `/stonks_join` to start.", ephemeral=True)
+            return
+
+        history = portfolios[user_id].get("history", [])
+        if not history:
+            name_ref = f"**{target_user.display_name}** has" if user and user != interaction.user else "You have"
+            await interaction.response.send_message(f"{name_ref} no recorded trade history yet!", ephemeral=True)
+            return
+
+        embed = discord.Embed(title=f"📜 {target_user.display_name}'s Trade History", color=discord.Color.blue())
+        
+        for item in reversed(history[-10:]):
+            ttype = item.get("type", "TRADE")
+            emoji = "🟢" if "BUY" in ttype or "LONG" in ttype else "🔴"
+            sym = item.get("symbol", "N/A")
+            qty = item.get("quantity", 0)
+            prc = item.get("price", 0.0)
+            tot = item.get("total", 0.0)
+            ts = item.get("timestamp", "")
+            try:
+                dt = datetime.fromisoformat(ts)
+                time_str = dt.strftime("%b %d, %H:%M UTC")
+            except:
+                time_str = ts
+            
+            embed.add_field(
+                name=f"{emoji} {ttype} • {sym} @ ${prc:,.2f}",
+                value=f"Amount: **${tot:,.2f}** ({qty:,.2f} shares) • *{time_str}*",
+                inline=False
+            )
+            
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="leaderboard", description="View the top investors in the competition.")
+    async def leaderboard(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        
+        portfolios = self.load_portfolios()
+        if not portfolios:
+            await interaction.followup.send("Nobody has joined the competition yet!")
+            return
+            
+        leaderboard_data = []
+        
+        for uid, data in portfolios.items():
+            cash = data.get("cash", 0.0)
+            total_value = cash
+            for symbol, h_data in data.get("holdings", {}).items():
+                shares, _, _ = self.get_holding_info(h_data)
+                if shares > 0:
+                    try:
+                        price = self.get_price(symbol)
+                        total_value += (price * shares)
+                    except:
+                        pass
+                        
+            # Add open futures positions equity
+            for pos in data.get("positions", []):
+                try:
+                    p_price = self.get_price(pos["symbol"])
+                    _, _, eq, _ = self.evaluate_contract(pos, p_price)
+                    total_value += eq
+                except:
+                    total_value += pos.get("margin", 0.0)
+                    
+            leaderboard_data.append((uid, total_value))
+            
+        leaderboard_data.sort(key=lambda x: x[1], reverse=True)
+        
+        embed = discord.Embed(title="🏆 Stonks Leaderboard", color=discord.Color.gold())
+        
+        for i, (uid, net_worth) in enumerate(leaderboard_data[:10]):
+            member = interaction.guild.get_member(int(uid))
+            name = member.display_name if member else f"User {uid}"
+            
+            prefix = "🏅"
+            if i == 0: prefix = "🥇"
+            elif i == 1: prefix = "🥈"
+            elif i == 2: prefix = "🥉"
+            
+            total_return = net_worth - STARTING_CASH
+            return_sign = "+" if total_return >= 0 else ""
+            
+            embed.add_field(
+                name=f"{prefix} #{i+1} {name}",
+                value=f"Net Worth: **${net_worth:,.2f}** ({return_sign}${total_return:,.2f})",
+                inline=False
+            )
+            
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="stock", description="Check a stock's live price, company summary, and historical chart.")
+    @app_commands.describe(symbol="Stock ticker symbol (e.g. AAPL, NVDA, NDSN)", period="Time period for the chart (default 1M)")
+    @app_commands.choices(period=[
+        app_commands.Choice(name="1 Week (1W)", value="1W"),
+        app_commands.Choice(name="1 Month (1M)", value="1M"),
+        app_commands.Choice(name="3 Months (3M)", value="3M"),
+        app_commands.Choice(name="6 Months (6M)", value="6M"),
+        app_commands.Choice(name="1 Year (1Y)", value="1Y"),
+    ])
+    async def stock(self, interaction: discord.Interaction, symbol: str, period: app_commands.Choice[str] = None):
+        await interaction.response.defer()
+        symbol = symbol.upper()
+        selected_period = period.value if period else "1M"
+
+        period_map = {
+            "1W": (timedelta(days=7), TimeFrame.Hour),
+            "1M": (timedelta(days=30), TimeFrame.Day),
+            "3M": (timedelta(days=90), TimeFrame.Day),
+            "6M": (timedelta(days=180), TimeFrame.Day),
+            "1Y": (timedelta(days=365), TimeFrame.Day),
+        }
+        
+        delta, tf = period_map.get(selected_period, (timedelta(days=30), TimeFrame.Day))
+        start_time = datetime.now(timezone.utc) - delta
+
+        if not self.alpaca_client:
+            if not self.load_alpaca_client():
+                await interaction.followup.send("Alpaca Client not initialized. Check API keys in configs/alpaca.json", ephemeral=True)
+                return
+
+        # Fetch current price
+        try:
+            curr_price = self.get_price(symbol)
+        except Exception as e:
+            await interaction.followup.send(f"Error fetching price for **{symbol}**: {e}", ephemeral=True)
+            return
+
+        # Fetch company name and 2-line description
+        company_name, description = await self.get_company_info(symbol)
+
+        try:
+            req = StockBarsRequest(
+                symbol_or_symbols=symbol,
+                timeframe=tf,
+                start=start_time
+            )
+            bar_set = self.alpaca_client.get_stock_bars(req)
+            
+            bars = []
+            if hasattr(bar_set, "data") and symbol in bar_set.data:
+                bars = bar_set.data[symbol]
+            elif hasattr(bar_set, symbol):
+                bars = getattr(bar_set, symbol)
+            elif isinstance(bar_set, dict) and symbol in bar_set:
+                bars = bar_set[symbol]
+            else:
+                try:
+                    bars = bar_set[symbol]
+                except Exception:
+                    bars = []
+
+            if not bars or len(bars) < 2:
+                # If historical data is missing, send rich embed without chart
+                embed = discord.Embed(
+                    title=f"{company_name} ({symbol})",
+                    description=description if description else "*No company summary available.*",
+                    color=discord.Color.blue()
+                )
+                embed.add_field(name="💵 Current Price", value=f"**${curr_price:,.2f}**", inline=True)
+                await interaction.followup.send(embed=embed)
+                return
+            
+            dates = [b.timestamp for b in bars]
+            prices = [float(b.close) for b in bars]
+            
+            open_price = prices[0]
+            diff = curr_price - open_price
+            pct_change = (diff / open_price) * 100 if open_price > 0 else 0.0
+            high_price = max(prices)
+            low_price = min(prices)
+            
+            is_up = diff >= 0
+            color_hex = "#2ecc71" if is_up else "#e74c3c"
+            
+            # Generate chart with matplotlib
+            fig, ax = plt.subplots(figsize=(9, 4.5), dpi=150)
+            fig.patch.set_facecolor("#1e1e24")
+            ax.set_facecolor("#1e1e24")
+            
+            ax.plot(dates, prices, color=color_hex, linewidth=2)
+            ax.fill_between(dates, prices, min(prices) * 0.998, color=color_hex, alpha=0.15)
+            
+            ax.set_title(f"{symbol} Price Chart ({selected_period})", color="white", fontsize=13, fontweight="bold", pad=12)
+            ax.tick_params(colors="white", which="both")
+            ax.grid(True, linestyle="--", alpha=0.2, color="white")
+            
+            if selected_period == "1W":
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d %H:%M"))
+            else:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+            fig.autofmt_xdate()
+            
+            for spine in ax.spines.values():
+                spine.set_color("#444444")
+                
+            ax.set_ylabel("Price ($)", color="white", fontsize=10)
+            
+            buf = io.BytesIO()
+            plt.tight_layout()
+            plt.savefig(buf, format="png", facecolor=fig.get_facecolor(), edgecolor="none")
+            plt.close(fig)
+            buf.seek(0)
+            
+            embed_color = discord.Color.green() if is_up else discord.Color.red()
+            sign = "+" if diff >= 0 else ""
+            
+            embed = discord.Embed(
+                title=f"{company_name} ({symbol})",
+                description=description if description else "*No company summary available.*",
+                color=embed_color
+            )
+            embed.add_field(name="💵 Current Price", value=f"**${curr_price:,.2f}**", inline=True)
+            embed.add_field(name=f"📊 Change ({selected_period})", value=f"**{sign}${diff:,.2f} ({sign}{pct_change:.2f}%)**", inline=True)
+            embed.add_field(name="📈 Period Range", value=f"${low_price:,.2f} - ${high_price:,.2f}", inline=True)
+            
+            file = discord.File(buf, filename=f"{symbol}_chart.png")
+            embed.set_image(url=f"attachment://{symbol}_chart.png")
+            
+            await interaction.followup.send(embed=embed, file=file)
+            
+        except Exception as e:
+            await interaction.followup.send(f"Error generating stock overview for {symbol}: {e}", ephemeral=True)
+
+async def setup(bot):
+    await bot.add_cog(stonksCog(bot))
+    print('stonks cog loaded')

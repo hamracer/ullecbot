@@ -13,3 +13,4 @@ configs/twitter.json
 configs/apexapi.json
 *run.md
 debug.log
+configs/alpaca.json

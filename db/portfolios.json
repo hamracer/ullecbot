@@ -1,0 +1,22 @@
+{
+    "153371251694501888": {
+        "cash": 90300.37,
+        "holdings": {
+            "NDSN": {
+                "shares": 29,
+                "avg_cost": 334.47,
+                "total_invested": 9699.630000000001
+            }
+        },
+        "history": [
+            {
+                "timestamp": "2026-08-27T08:56:29.684686+00:00",
+                "type": "BUY",
+                "symbol": "NDSN",
+                "quantity": 29,
+                "price": 334.47,
+                "total": 9699.630000000001
+            }
+        ]
+    }
+}
