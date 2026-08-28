@@ -1,3 +1,4 @@
+from aiohttp import client_middleware_digest_auth
 import discord
 from discord import app_commands
 from discord.ext import tasks, commands
@@ -58,7 +59,8 @@ async def load():
 
     MY_GUILDS = [
         discord.Object(id=562352224840187917),
-        discord.Object(id=262371002577715201)
+        discord.Object(id=262371002577715201),
+        discord.Object(id=396772444808937485)
     ]
 
     @bot.tree.command(name="re", description="Reload all cogs (owner only)", guilds=MY_GUILDS)
@@ -124,7 +126,8 @@ async def on_ready():
         try:
             MY_GUILDS = [
                 discord.Object(id=562352224840187917),
-                discord.Object(id=262371002577715201)
+                discord.Object(id=262371002577715201),
+                discord.Object(id=396772444808937485)
             ]
             for guild in MY_GUILDS:
                 bot.tree.copy_global_to(guild=guild)
