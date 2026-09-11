@@ -6,4 +6,10 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    labels:
+      glance.hide: false
+      glance.name: ullecbot
+      glance.icon: si:robotframework
+      glance.url: https://github.com/hamracer/ullecbot
+      glance.description: Dumb Bot
 networks: {}
